@@ -1,0 +1,33 @@
+# OS / Explorer
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Windows metadata
+$RECYCLE.BIN/
+
+# Editor folders
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local build / export leftovers
+dist/
+build/
+release/
+exports/
