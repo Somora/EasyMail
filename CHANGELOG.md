@@ -1,6 +1,14 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.1 (21/04/2026)
+- Added `/em export` to open a copyable export of EasyMail saved data.
+- Added `/em reset settings` to reset filters and source settings while keeping recipient data.
+- Added `/em reset recipients` to clear recents, alts, default recipient, pinned recipients, and notes while keeping settings.
+- Added `/em reset all` for a full EasyMail saved data reset.
+- Cleaned up unused legacy send-mail autocomplete file from the repository.
+- Improved `DEL` expiry action safety around Blizzard delete/return APIs.
+
 ## Version 1.0.0 (06/04/2026)
 - Initial Retail release of EasyMail.
 - Added `Open All` inbox processing for gold and attachments.

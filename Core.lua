@@ -3,7 +3,7 @@ EasyMail = EasyMail or {}
 local addon = EasyMail
 
 addon.name = "EasyMail"
-addon.version = "1.0.0"
+addon.version = "1.0.1"
 addon.modules = {}
 addon.defaults = {
     debug = false,
@@ -102,6 +102,47 @@ local function trimRealmName(realmName)
     end
 
     return realmName:gsub("%s+", "")
+end
+
+local function serializeValue(value)
+    local valueType = type(value)
+    if valueType == "string" then
+        return string.format("%q", value)
+    end
+    if valueType == "number" or valueType == "boolean" then
+        return tostring(value)
+    end
+    if valueType ~= "table" then
+        return "nil"
+    end
+
+    local keys = {}
+    for key in pairs(value) do
+        table.insert(keys, key)
+    end
+    table.sort(keys, function(left, right)
+        return tostring(left) < tostring(right)
+    end)
+
+    local parts = {}
+    for _, key in ipairs(keys) do
+        local keyText
+        if type(key) == "string" and key:match("^[%a_][%w_]*$") then
+            keyText = key
+        else
+            keyText = "[" .. serializeValue(key) .. "]"
+        end
+        table.insert(parts, keyText .. "=" .. serializeValue(value[key]))
+    end
+
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local function resetTable(target, defaults)
+    for key in pairs(target) do
+        target[key] = nil
+    end
+    copyDefaults(target, defaults)
 end
 
 function addon:Print(message)
@@ -633,6 +674,94 @@ function addon:ToggleContextMenu(menu, anchor, items)
     return true
 end
 
+function addon:ResetSettings()
+    local sendTools = EasyMailDB.sendTools or {}
+    local defaultRecipient = sendTools.defaultRecipient
+    local favoriteRecipients = sendTools.favoriteRecipients
+    local recipientNotes = sendTools.recipientNotes
+
+    EasyMailDB.openAll = {}
+    EasyMailDB.sendTools = {}
+    copyDefaults(EasyMailDB.openAll, self.defaults.openAll)
+    copyDefaults(EasyMailDB.sendTools, self.defaults.sendTools)
+
+    EasyMailDB.sendTools.defaultRecipient = defaultRecipient
+    EasyMailDB.sendTools.favoriteRecipients = favoriteRecipients or {}
+    EasyMailDB.sendTools.recipientNotes = recipientNotes or {}
+end
+
+function addon:ResetRecipients()
+    EasyMailDB.recentRecipients = {}
+    EasyMailDB.lastMailedRecipient = nil
+    EasyMailDB.characters = {}
+    EasyMailDB.sendTools = EasyMailDB.sendTools or {}
+    EasyMailDB.sendTools.defaultRecipient = nil
+    EasyMailDB.sendTools.favoriteRecipients = {}
+    EasyMailDB.sendTools.recipientNotes = {}
+    copyDefaults(EasyMailDB.sendTools, self.defaults.sendTools)
+    self:RegisterCurrentCharacter()
+end
+
+function addon:ResetAllData()
+    resetTable(EasyMailDB, self.defaults)
+    self:RegisterCurrentCharacter()
+    self:GetOpenAllSettings()
+    self:GetSendToolsSettings()
+end
+
+function addon:GetExportText()
+    return "EasyMailDB=" .. serializeValue(EasyMailDB or {})
+end
+
+function addon:ShowCopyDialog(title, text)
+    if not self.copyDialog then
+        local dialog = CreateFrame("Frame", "EasyMailCopyDialog", UIParent, "BackdropTemplate")
+        dialog:SetSize(560, 260)
+        dialog:SetPoint("CENTER")
+        dialog:SetFrameStrata("DIALOG")
+        dialog:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true,
+            tileSize = 16,
+            edgeSize = 12,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        dialog:SetBackdropColor(0.05, 0.05, 0.05, 0.98)
+        dialog:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
+        dialog:EnableMouse(true)
+        dialog:SetMovable(true)
+        dialog:RegisterForDrag("LeftButton")
+        dialog:SetScript("OnDragStart", dialog.StartMoving)
+        dialog:SetScript("OnDragStop", dialog.StopMovingOrSizing)
+
+        dialog.title = dialog:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+        dialog.title:SetPoint("TOPLEFT", dialog, "TOPLEFT", 16, -14)
+
+        local closeButton = CreateFrame("Button", nil, dialog, "UIPanelCloseButton")
+        closeButton:SetPoint("TOPRIGHT", dialog, "TOPRIGHT", -4, -4)
+
+        local editBox = CreateFrame("EditBox", nil, dialog)
+        editBox:SetPoint("TOPLEFT", dialog, "TOPLEFT", 16, -46)
+        editBox:SetPoint("BOTTOMRIGHT", dialog, "BOTTOMRIGHT", -16, 16)
+        editBox:SetMultiLine(true)
+        editBox:SetAutoFocus(true)
+        editBox:SetFontObject(GameFontHighlightSmall)
+        editBox:SetScript("OnEscapePressed", function()
+            dialog:Hide()
+        end)
+        dialog.editBox = editBox
+
+        self.copyDialog = dialog
+    end
+
+    self.copyDialog.title:SetText(title or "EasyMail Export")
+    self.copyDialog.editBox:SetText(text or "")
+    self.copyDialog.editBox:HighlightText()
+    self.copyDialog:Show()
+    self.copyDialog.editBox:SetFocus()
+end
+
 function addon:Initialize()
     EasyMailDB = EasyMailDB or {}
     copyDefaults(EasyMailDB, self.defaults)
@@ -652,6 +781,11 @@ end
 
 local function slashCommand(message)
     local command = strlower(strtrim(message or ""))
+
+    if command == "" or command == "help" then
+        addon:Print("Commands: /em recents, /em export, /em reset settings, /em reset recipients, /em reset all, /em debug")
+        return
+    end
 
     if command == "debug" then
         EasyMailDB.debug = not EasyMailDB.debug
@@ -674,7 +808,31 @@ local function slashCommand(message)
         return
     end
 
-    addon:Print("Commands: /em debug, /em recents")
+    if command == "export" then
+        addon:ShowCopyDialog("EasyMail Export", addon:GetExportText())
+        addon:Print("Export opened. Use Ctrl+C to copy the highlighted text.")
+        return
+    end
+
+    if command == "reset settings" then
+        addon:ResetSettings()
+        addon:Print("Settings reset. Recipient data was kept.")
+        return
+    end
+
+    if command == "reset recipients" then
+        addon:ResetRecipients()
+        addon:Print("Recipient data reset. Settings were kept.")
+        return
+    end
+
+    if command == "reset all" then
+        addon:ResetAllData()
+        addon:Print("All EasyMail settings and recipient data reset.")
+        return
+    end
+
+    addon:Print("Unknown command. Type /em help for commands.")
 end
 
 SLASH_EASYMAIL1 = "/easymail"

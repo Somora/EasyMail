@@ -524,9 +524,9 @@ function module:EnsureExpiryIndicator(displayIndex)
             return
         end
 
-        if InboxItemCanDelete(selfButton.mailIndex) then
+        if InboxItemCanDelete and InboxItemCanDelete(selfButton.mailIndex) and DeleteInboxItem then
             DeleteInboxItem(selfButton.mailIndex)
-        else
+        elseif ReturnInboxItem then
             ReturnInboxItem(selfButton.mailIndex)
         end
     end)
@@ -551,7 +551,7 @@ function module:UpdateVisibleExpiryIndicators()
             else
                 local info = getMailInfo(mailIndex)
                 if info then
-                    local canDelete = InboxItemCanDelete(mailIndex)
+                    local canDelete = InboxItemCanDelete and InboxItemCanDelete(mailIndex)
                     buttons.del.mailIndex = mailIndex
                     buttons.del.tooltipText = canDelete and "Delete this mail now." or "Delete is not allowed here, so DEL will return the mail instead."
                     buttons.del.text:SetTextColor(1, 0.30, 0.30)

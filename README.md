@@ -21,23 +21,12 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Skip GM mail.
 - Stop when bags are full.
 - Leave a chosen number of free bag slots.
-- Filter by mail type:
-  - Non-AH
-  - AH Sold
-  - AH Cancelled
-  - AH Won
-  - Other AH Mail
+- Filter by mail type: Non-AH, AH Sold, AH Cancelled, AH Won, and Other AH Mail.
 - Shift-click `Open All` to temporarily override filters.
 
 ### Send Mail Tools
 - `EM` quick menu next to the recipient field.
-- Quick fill from:
-  - target
-  - last mailed recipient
-  - alternate characters
-  - recent recipients
-  - friends
-  - guild members
+- Quick fill from target, last mailed recipient, alternate characters, recent recipients, friends, and guild members.
 - Online-first Friends and Guild sections.
 - Pinned recipients for commonly used mail targets.
 - Default recipient support.
@@ -58,9 +47,10 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Recent recipients are remembered after successful sends.
 - Known characters are recorded for alt support.
 - Recipient favorites, default recipient, and notes are saved.
+- Export or reset settings and recipient data from slash commands.
 
 ## Version
-- Current release: `1.0.0`
+- Current release: `1.0.1`
 - Game version target: WoW Retail
 - Interface version: `120001`
 
@@ -75,9 +65,14 @@ World of Warcraft\_retail_\Interface\AddOns\EasyMail
 - EasyMail is a from-scratch addon, not a Postal fork.
 - The goal is to provide strong everyday mail features without dragging in unnecessary complexity.
 - Built and tested iteratively for WoW Retail UI behavior.
+- License: GPLv3.
 
 ## Slash Commands
 - `/easymail`
 - `/em`
 - `/em recents`
+- `/em export`
+- `/em reset settings`
+- `/em reset recipients`
+- `/em reset all`
 - `/em debug`
