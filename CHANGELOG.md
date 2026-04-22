@@ -1,6 +1,9 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.2 (22/04/2026)
+- Updated WoW Retail interface version to `120005`.
+
 ## Version 1.0.1 (21/04/2026)
 - Added `/em export` to open a copyable export of EasyMail saved data.
 - Added `/em reset settings` to reset filters and source settings while keeping recipient data.

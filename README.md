@@ -50,9 +50,9 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Export or reset settings and recipient data from slash commands.
 
 ## Version
-- Current release: `1.0.1`
+- Current release: `1.0.2`
 - Game version target: WoW Retail
-- Interface version: `120001`
+- Interface version: `120005`
 
 ## Install
 Copy the `EasyMail` folder into your WoW addon directory so it ends up like this:
