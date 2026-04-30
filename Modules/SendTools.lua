@@ -709,12 +709,12 @@ function module:ShowMenu()
 end
 
 function module:EnsureUi()
-    if not SendMailFrame or not SendMailNameEditBox then
+    if not SendMailFrame or not SendMailNameEditBox or not SendMailSubjectEditBox then
         return
     end
 
     if not self.isUiReady then
-        local button = addon:CreateButton(SendMailFrame, "EM", 26, 20, "LEFT", SendMailNameEditBox, "RIGHT", 4, 0)
+        local button = addon:CreateButton(SendMailFrame, "EM", 26, 20, "LEFT", SendMailSubjectEditBox, "RIGHT", 4, 0)
         button:SetScript("OnClick", function()
             module:ShowMenu()
         end)

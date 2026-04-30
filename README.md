@@ -11,7 +11,7 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Row checkboxes for selective inbox actions.
 - Shift-click a mail row to quick loot money or attachments.
 - Ctrl-click a mail row to quickly return mail.
-- `DEL` action under mail expiry with safe fallback to return when direct delete is not allowed.
+- `DEL` action under mail expiry with confirmation for mails that still contain gold, attachments, or COD, plus safe fallback to return when direct delete is not allowed.
 - Mailbox Summary chat output for inbox actions.
 
 ### Open All Filters
@@ -50,7 +50,7 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Export or reset settings and recipient data from slash commands.
 
 ## Version
-- Current release: `1.0.2`
+- Current release: `1.0.3`
 - Game version target: WoW Retail
 - Interface version: `120005`
 

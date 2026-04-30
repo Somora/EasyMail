@@ -147,8 +147,78 @@ local function getFreeBagSlots()
     return freeSlots
 end
 
+local function shouldConfirmDeleteAction(info)
+    if not info then
+        return false
+    end
+
+    return (info.money or 0) > 0
+        or (info.codAmount or 0) > 0
+        or (info.attachmentCount or 0) > 0
+end
+
 function module:GetSettings()
     return addon:GetOpenAllSettings()
+end
+
+function module:ExecuteDeleteAction(mailIndex)
+    if not mailIndex or mailIndex < 1 or mailIndex > getInboxCount() then
+        return
+    end
+
+    if InboxItemCanDelete and InboxItemCanDelete(mailIndex) and DeleteInboxItem then
+        DeleteInboxItem(mailIndex)
+    elseif ReturnInboxItem then
+        ReturnInboxItem(mailIndex)
+    end
+end
+
+function module:BuildDeleteConfirmText(info, canDelete)
+    local actionText = canDelete and "delete" or "return"
+    local senderText = info and info.sender and info.sender ~= "" and (" from " .. info.sender) or ""
+    local detailParts = {}
+
+    if (info.money or 0) > 0 then
+        table.insert(detailParts, formatMoney(info.money))
+    end
+    if (info.attachmentCount or 0) > 0 then
+        table.insert(detailParts, (info.attachmentCount or 0) .. " item" .. ((info.attachmentCount or 0) == 1 and "" or "s"))
+    end
+    if (info.codAmount or 0) > 0 then
+        table.insert(detailParts, "COD " .. formatMoney(info.codAmount))
+    end
+
+    local details = #detailParts > 0 and ("\n\nContains: " .. table.concat(detailParts, ", ")) or ""
+    return "EasyMail: " .. actionText:gsub("^%l", string.upper) .. " this mail" .. senderText .. "?" .. details
+end
+
+function module:ConfirmDeleteAction(mailIndex)
+    local info = getMailInfo(mailIndex)
+    if not info then
+        return
+    end
+
+    local canDelete = InboxItemCanDelete and InboxItemCanDelete(mailIndex) and DeleteInboxItem
+    if not shouldConfirmDeleteAction(info) then
+        self:ExecuteDeleteAction(mailIndex)
+        return
+    end
+
+    StaticPopupDialogs["EASYMAIL_CONFIRM_DEL_ACTION"] = StaticPopupDialogs["EASYMAIL_CONFIRM_DEL_ACTION"] or {
+        button1 = YES,
+        button2 = CANCEL,
+        OnAccept = function(selfPopup)
+            module:ExecuteDeleteAction(selfPopup.data)
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+
+    local dialog = StaticPopupDialogs["EASYMAIL_CONFIRM_DEL_ACTION"]
+    dialog.text = self:BuildDeleteConfirmText(info, canDelete)
+    StaticPopup_Show("EASYMAIL_CONFIRM_DEL_ACTION", nil, nil, mailIndex)
 end
 
 function module:IsOverrideActive()
@@ -524,11 +594,7 @@ function module:EnsureExpiryIndicator(displayIndex)
             return
         end
 
-        if InboxItemCanDelete and InboxItemCanDelete(selfButton.mailIndex) and DeleteInboxItem then
-            DeleteInboxItem(selfButton.mailIndex)
-        elseif ReturnInboxItem then
-            ReturnInboxItem(selfButton.mailIndex)
-        end
+        module:ConfirmDeleteAction(selfButton.mailIndex)
     end)
 
     expireTime.easyMailExpiryButtons = {
@@ -553,7 +619,11 @@ function module:UpdateVisibleExpiryIndicators()
                 if info then
                     local canDelete = InboxItemCanDelete and InboxItemCanDelete(mailIndex)
                     buttons.del.mailIndex = mailIndex
-                    buttons.del.tooltipText = canDelete and "Delete this mail now." or "Delete is not allowed here, so DEL will return the mail instead."
+                    if shouldConfirmDeleteAction(info) then
+                        buttons.del.tooltipText = canDelete and "Delete this mail. EasyMail will ask for confirmation because it still contains gold, attachments, or COD." or "Delete is not allowed here, so DEL will return the mail instead. EasyMail will ask for confirmation because it still contains gold, attachments, or COD."
+                    else
+                        buttons.del.tooltipText = canDelete and "Delete this mail now." or "Delete is not allowed here, so DEL will return the mail instead."
+                    end
                     buttons.del.text:SetTextColor(1, 0.30, 0.30)
                     buttons.del:SetAlpha(1)
                     buttons.del:SetEnabled(true)

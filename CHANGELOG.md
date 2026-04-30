@@ -1,6 +1,11 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.3 (30/04/2026)
+- Added a confirmation popup for `DEL` when a mail still contains gold, attachments, or COD.
+- Kept direct `DEL` behavior for empty mails so quick cleanup stays fast.
+- Moved the send-mail `EM` button away from the `Postage` area to avoid overlap when sending many items.
+
 ## Version 1.0.2 (22/04/2026)
 - Updated WoW Retail interface version to `120005`.
 
