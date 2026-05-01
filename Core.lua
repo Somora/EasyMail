@@ -3,7 +3,7 @@ EasyMail = EasyMail or {}
 local addon = EasyMail
 
 addon.name = "EasyMail"
-addon.version = "1.0.3"
+addon.version = "1.0.5"
 addon.modules = {}
 addon.defaults = {
     debug = false,
@@ -25,6 +25,12 @@ addon.defaults = {
         defaultRecipient = nil,
         favoriteRecipients = {},
         recipientNotes = {},
+        queueViewerPosition = {
+            point = "CENTER",
+            relativePoint = "CENTER",
+            x = 0,
+            y = 0,
+        },
     },
     openAll = {
         takeMoney = true,

@@ -10,8 +10,15 @@ module.moneyFieldsHooked = false
 module.lastAutoSubject = nil
 
 local events = CreateFrame("Frame")
-local bagHookApplied = false
-local attachContainerItem
+local getCurrentRecipient
+local getTargetRecipient
+
+local function getMassSendModule()
+    return addon.modules and addon.modules.MassSend or nil
+end
+local function getQuickAttachModule()
+    return addon.modules and addon.modules.QuickAttach or nil
+end
 local NOTE_PRESETS = {
     "Bank Alt",
     "Auction Alt",
@@ -34,145 +41,6 @@ local PROFESSION_NOTE_PRESETS = {
     "Skinning",
     "Tailoring",
 }
-local QUICK_ATTACH_TYPES = {
-    {
-        key = "tradeGoods",
-        text = "Attach Trade Goods",
-        match = function(classID)
-            return classID == 7
-        end,
-    },
-    {
-        key = "consumables",
-        text = "Attach Consumables",
-        match = function(classID)
-            return classID == 0
-        end,
-    },
-    {
-        key = "gems",
-        text = "Attach Gems",
-        match = function(classID)
-            return classID == 3
-        end,
-    },
-    {
-        key = "recipes",
-        text = "Attach Recipes",
-        match = function(classID)
-            return classID == 9
-        end,
-    },
-    {
-        key = "stackables",
-        text = "Attach Stackables",
-        match = function(_, _, maxStack)
-            return (maxStack or 1) > 1
-        end,
-    },
-}
-
-local function getContainerNumSlotsCompat(bag)
-    if C_Container and C_Container.GetContainerNumSlots then
-        return C_Container.GetContainerNumSlots(bag)
-    end
-
-    return GetContainerNumSlots and GetContainerNumSlots(bag) or 0
-end
-
-local function getContainerItemLinkCompat(bag, slot)
-    if C_Container and C_Container.GetContainerItemLink then
-        return C_Container.GetContainerItemLink(bag, slot)
-    end
-
-    return GetContainerItemLink and GetContainerItemLink(bag, slot) or nil
-end
-
-local function getContainerItemInfoCompat(bag, slot)
-    if C_Container and C_Container.GetContainerItemInfo then
-        return C_Container.GetContainerItemInfo(bag, slot)
-    end
-
-    local texture, itemCount, locked = GetContainerItemInfo and GetContainerItemInfo(bag, slot)
-    if not texture then
-        return nil
-    end
-
-    return {
-        iconFileID = texture,
-        stackCount = itemCount,
-        isLocked = locked,
-    }
-end
-
-local function getUsedAttachmentSlots()
-    local used = 0
-    local maxSlots = ATTACHMENTS_MAX_SEND or 12
-    for index = 1, maxSlots do
-        local itemName = GetSendMailItem and GetSendMailItem(index)
-        if itemName then
-            used = used + 1
-        end
-    end
-    return used, maxSlots
-end
-
-local function getQuickAttachCount(definition)
-    local count = 0
-    for bag = BACKPACK_CONTAINER or 0, NUM_BAG_SLOTS or 4 do
-        local numSlots = getContainerNumSlotsCompat(bag) or 0
-        for slot = 1, numSlots do
-            local itemInfo = getContainerItemInfoCompat(bag, slot)
-            local itemLink = getContainerItemLinkCompat(bag, slot)
-            if itemInfo and itemLink and not itemInfo.isLocked then
-                local _, _, _, _, _, _, _, maxStack, _, _, _, classID, subclassID = GetItemInfo(itemLink)
-                if definition.match(classID, subclassID, maxStack, itemLink, itemInfo.stackCount or 1) then
-                    count = count + 1
-                end
-            end
-        end
-    end
-    return count
-end
-
-local function quickAttachByDefinition(definition)
-    if not SendMailFrame or not SendMailFrame:IsShown() then
-        return 0, 0
-    end
-
-    local usedSlots, maxSlots = getUsedAttachmentSlots()
-    local freeSlots = math.max(0, maxSlots - usedSlots)
-    if freeSlots <= 0 then
-        return 0, 0
-    end
-
-    local attached = 0
-    local matched = 0
-
-    for bag = BACKPACK_CONTAINER or 0, NUM_BAG_SLOTS or 4 do
-        local numSlots = getContainerNumSlotsCompat(bag) or 0
-        for slot = 1, numSlots do
-            if attached >= freeSlots then
-                return attached, matched
-            end
-
-            local itemInfo = getContainerItemInfoCompat(bag, slot)
-            local itemLink = getContainerItemLinkCompat(bag, slot)
-            if itemInfo and itemLink and not itemInfo.isLocked then
-                local _, _, _, _, _, _, _, maxStack, _, _, _, classID, subclassID = GetItemInfo(itemLink)
-                if definition.match(classID, subclassID, maxStack, itemLink, itemInfo.stackCount or 1) then
-                    matched = matched + 1
-                    if attachContainerItem(bag, slot) then
-                        attached = attached + 1
-                    end
-                end
-            end
-        end
-    end
-
-    return attached, matched
-end
-
 local function getRecipientEditBox()
     return SendMailNameEditBox
 end
@@ -208,45 +76,7 @@ local function formatWireMoney(amount)
     return table.concat(parts, " ")
 end
 
-local function getContainerLocation(button)
-    if not button then
-        return nil, nil
-    end
-
-    local bag = button.GetBagID and button:GetBagID() or button.bagID or button:GetParent() and button:GetParent().bagID
-    local slot = button.GetID and button:GetID() or button.slotIndex or button.slot
-
-    if bag == nil or slot == nil then
-        return nil, nil
-    end
-
-    return bag, slot
-end
-
-attachContainerItem = function(bag, slot)
-    if bag == nil or slot == nil or not SendMailFrame or not SendMailFrame:IsShown() then
-        return false
-    end
-
-    if CursorHasItem() then
-        return false
-    end
-
-    if C_Container and C_Container.PickupContainerItem then
-        C_Container.PickupContainerItem(bag, slot)
-    else
-        PickupContainerItem(bag, slot)
-    end
-
-    if not CursorHasItem() then
-        return false
-    end
-
-    ClickSendMailItemButton()
-    return true
-end
-
-local function getCurrentRecipient()
+getCurrentRecipient = function()
     local editBox = getRecipientEditBox()
     if not editBox then
         return nil
@@ -255,7 +85,7 @@ local function getCurrentRecipient()
     return addon:NormalizeRecipient(editBox:GetText())
 end
 
-local function getTargetRecipient()
+getTargetRecipient = function()
     if UnitExists("target") and UnitIsPlayer("target") and not UnitIsUnit("target", "player") then
         local name, realm = UnitName("target")
         if realm and realm ~= "" then
@@ -434,6 +264,8 @@ function module:BuildMenu()
     local currentRecipient = getCurrentRecipient()
     local defaultRecipient = addon:GetDefaultRecipient()
     local currentNote = currentRecipient and addon:GetRecipientNote(currentRecipient) or nil
+    local massSend = getMassSendModule()
+    local queuedCount = massSend and massSend:GetQueueCount() or 0
     local menu = {
         {
             text = "EasyMail",
@@ -637,18 +469,19 @@ function module:BuildMenu()
     end
 
     if settings.showQuickAttach ~= false then
+        local quickAttach = getQuickAttachModule()
         table.insert(menu, {
             text = "Quick Attach",
             isTitle = true,
         })
 
-        for _, definition in ipairs(QUICK_ATTACH_TYPES) do
-            local matchCount = getQuickAttachCount(definition)
+        for _, definition in ipairs(quickAttach and quickAttach:GetDefinitions() or {}) do
+            local matchCount = quickAttach:GetMatchCount(definition)
             table.insert(menu, {
                 text = definition.text .. " (" .. matchCount .. ")",
                 disabled = matchCount == 0,
                 func = function()
-                    local attached, matched = quickAttachByDefinition(definition)
+                    local attached, matched = quickAttach:AttachByDefinition(definition)
                     if attached > 0 then
                         addon:Print("Quick Attach: attached " .. attached .. " stack" .. (attached == 1 and "" or "s") .. " from " .. definition.text .. ".")
                     elseif matched > 0 then
@@ -660,6 +493,39 @@ function module:BuildMenu()
             })
         end
     end
+
+    table.insert(menu, {
+        text = "Mass Send Queue: " .. queuedCount,
+        isTitle = true,
+    })
+    table.insert(menu, {
+        text = "View Queue",
+        disabled = not massSend,
+        func = function()
+            if massSend then
+                massSend:ToggleQueueViewer()
+            end
+        end,
+    })
+    table.insert(menu, {
+        text = "Start Mass Send",
+        disabled = queuedCount == 0 or not currentRecipient,
+        func = function()
+            if massSend then
+                massSend:StartFromQueue()
+            end
+        end,
+    })
+    table.insert(menu, {
+        text = "Clear Mass Queue",
+        disabled = queuedCount == 0,
+        func = function()
+            if massSend then
+                massSend:ClearQueue()
+                addon:PopulateContextMenu(module.menuFrame, module.menuButton, module:BuildMenu())
+            end
+        end,
+    })
 
     table.insert(menu, {
         text = "Source Settings",
@@ -723,6 +589,7 @@ function module:EnsureUi()
             GameTooltip:AddLine("EasyMail")
             GameTooltip:AddLine("Quick fill with alts, last mailed, friends, guild, or recent recipients.", 1, 1, 1, true)
             GameTooltip:AddLine("Alt-click a bag item to attach it instantly.", 1, 1, 1, true)
+            GameTooltip:AddLine("If the current mail is full, extra Alt-clicked or right-clicked items go into the Mass Send queue.", 1, 1, 1, true)
             GameTooltip:AddLine("Gold mails can auto-fill the subject when blank.", 1, 1, 1, true)
             GameTooltip:Show()
         end)
@@ -737,6 +604,10 @@ function module:EnsureUi()
     if SendMailMailButton and not self.sendButtonHooked then
         SendMailMailButton:HookScript("OnClick", function()
             module:RememberPendingRecipient()
+            local massSend = getMassSendModule()
+            if massSend then
+                massSend:ArmFromCurrentMail()
+            end
         end)
         self.sendButtonHooked = true
     end
@@ -753,16 +624,9 @@ function module:EnsureUi()
         self.moneyFieldsHooked = true
     end
 
-    if not bagHookApplied and ContainerFrameItemButton_OnModifiedClick then
-        hooksecurefunc("ContainerFrameItemButton_OnModifiedClick", function(selfButton, mouseButton)
-            if mouseButton ~= "LeftButton" or not IsAltKeyDown() or not SendMailFrame or not SendMailFrame:IsShown() then
-                return
-            end
-
-            local bag, slot = getContainerLocation(selfButton)
-            attachContainerItem(bag, slot)
-        end)
-        bagHookApplied = true
+    local quickAttach = getQuickAttachModule()
+    if quickAttach then
+        quickAttach:EnsureBagHook()
     end
 
     module:UpdateWireSubject()
@@ -774,6 +638,7 @@ function module:OnInitialize()
     events:RegisterEvent("MAIL_SHOW")
     events:RegisterEvent("MAIL_SEND_SUCCESS")
     events:RegisterEvent("MAIL_FAILED")
+    events:RegisterEvent("MAIL_CLOSED")
     events:RegisterEvent("FRIENDLIST_UPDATE")
     events:RegisterEvent("GUILD_ROSTER_UPDATE")
     events:SetScript("OnEvent", function(_, event)
@@ -783,8 +648,23 @@ function module:OnInitialize()
         elseif event == "MAIL_SEND_SUCCESS" then
             module:CommitPendingRecipient()
             module.lastAutoSubject = nil
+            local massSend = getMassSendModule()
+            if massSend and massSend:IsActive() then
+                C_Timer.After(0.2, function()
+                    massSend:ContinueAfterSuccess()
+                end)
+            end
         elseif event == "MAIL_FAILED" then
             module.pendingRecipient = nil
+            local massSend = getMassSendModule()
+            if massSend then
+                massSend:HandleSendFailed()
+            end
+        elseif event == "MAIL_CLOSED" then
+            local massSend = getMassSendModule()
+            if massSend then
+                massSend:HandleMailClosed()
+            end
         end
     end)
 end

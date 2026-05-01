@@ -16,10 +16,13 @@ module.stats = nil
 module.stopReason = nil
 module.currentRun = nil
 module.hiddenBlizzardButton = nil
-module.selection = {}
 
 local processor = CreateFrame("Frame")
 local inboxRowHooksApplied = false
+
+local function getSelectionModule()
+    return addon.modules and addon.modules.OpenAllSelect or nil
+end
 
 local function getInboxCount()
     return GetInboxNumItems() or 0
@@ -445,7 +448,7 @@ function module:HandleInboxRowClick(button)
 
     if info.money and info.money > 0 then
         TakeInboxMoney(index)
-        addon:Print("Quick loot: received " .. formatMoney(info.money) .. ".")
+        addon:Debug("Quick loot: received " .. formatMoney(info.money) .. ".")
         return
     end
 
@@ -459,91 +462,38 @@ function module:GetExpireTimeFrame(displayIndex)
 end
 
 function module:GetSelectedMailCount()
-    local count = 0
-    for mailIndex, isSelected in pairs(self.selection) do
-        if isSelected and mailIndex <= getInboxCount() then
-            count = count + 1
-        end
-    end
-    return count
+    local selection = getSelectionModule()
+    return selection and selection:GetSelectedMailCount() or 0
 end
 
 function module:IsMailSelected(mailIndex)
-    return self.selection and self.selection[mailIndex] == true
+    local selection = getSelectionModule()
+    return selection and selection:IsMailSelected(mailIndex) or false
 end
 
 function module:ClearSelection()
-    self.selection = {}
-    self:UpdateVisibleSelections()
-    self:UpdateButtonState()
+    local selection = getSelectionModule()
+    if selection then
+        selection:ClearSelection()
+    end
 end
 
 function module:ToggleSelection(mailIndex)
-    if not mailIndex or mailIndex < 1 or mailIndex > getInboxCount() then
-        return
+    local selection = getSelectionModule()
+    if selection then
+        selection:ToggleSelection(mailIndex)
     end
-
-    if self.selection[mailIndex] then
-        self.selection[mailIndex] = nil
-    else
-        self.selection[mailIndex] = true
-    end
-
-    self:UpdateVisibleSelections()
-    self:UpdateButtonState()
 end
 
 function module:GetRowCheckbox(displayIndex)
-    local itemFrame, rowButton = getDisplayMailFrames(displayIndex)
-    local parent = itemFrame or rowButton
-    if not parent then
-        return nil
-    end
-
-    if parent.easyMailSelectCheckbox then
-        return parent.easyMailSelectCheckbox
-    end
-
-    local checkbox = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
-    checkbox:SetSize(18, 18)
-    checkbox:SetPoint("TOPLEFT", parent, "TOPLEFT", -12, -12)
-    checkbox:SetScript("OnClick", function(selfCheckbox)
-        if selfCheckbox.mailIndex then
-            module:ToggleSelection(selfCheckbox.mailIndex)
-        end
-    end)
-    checkbox:SetScript("OnEnter", function(selfCheckbox)
-        GameTooltip:SetOwner(selfCheckbox, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("EasyMail Select")
-        GameTooltip:AddLine("Toggle this mail for Open Sel / Return Sel.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    checkbox:SetScript("OnLeave", function()
-        GameTooltip:Hide()
-    end)
-
-    parent.easyMailSelectCheckbox = checkbox
-    return checkbox
+    local selection = getSelectionModule()
+    return selection and selection:GetRowCheckbox(displayIndex) or nil
 end
 
 function module:UpdateVisibleSelections()
-    local perPage = INBOXITEMS_TO_DISPLAY or 7
-    local page = InboxFrame and InboxFrame.pageNum or 1
-
-    for displayIndex = 1, perPage do
-        local checkbox = self:GetRowCheckbox(displayIndex)
-        if checkbox then
-            local mailIndex = displayIndex + ((page - 1) * perPage)
-            if mailIndex > getInboxCount() then
-                checkbox.mailIndex = nil
-                checkbox:SetChecked(false)
-                checkbox:Hide()
-            else
-                checkbox.mailIndex = mailIndex
-                checkbox:SetChecked(self:IsMailSelected(mailIndex))
-                checkbox:Show()
-            end
-        end
+    local selection = getSelectionModule()
+    if selection then
+        selection:UpdateVisibleSelections()
     end
 end
 
@@ -942,18 +892,6 @@ function module:StartProcessing(options)
     self.timer = 0
     processor:Show()
     self:UpdateButtonState()
-
-    if selectedAction == "return" then
-        addon:Print("Returning selected mail...")
-    elseif selectedAction == "open" then
-        addon:Print("Opening selected mail...")
-    elseif ahSoldOnly then
-        addon:Print("Opening sold auction mail...")
-    elseif overrideFilters then
-        addon:Print("Opening mailbox with filter override...")
-    else
-        addon:Print("Opening mailbox...")
-    end
 end
 
 function module:StopProcessing(reason)

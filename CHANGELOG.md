@@ -1,6 +1,23 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.5 (01/05/2026)
+- Added a dedicated Mass Send Queue popup for queued overflow items.
+- The queue popup now opens automatically when extra Alt-clicked items spill past the mail attachment limit.
+- Added item tooltips, per-item removal, and a `Clear Queue` action to the queue popup.
+- Polished Mass Send queue layout and replaced the old inline `EM` menu preview with a cleaner `View Queue` action.
+- Added automatic queue clearing and popup closing when the mail window closes.
+- The queue popup now remembers its last dragged position.
+- Added Baganator category-mail overflow support so items beyond the first 12 continue into the Mass Send queue.
+- Moved Baganator compatibility into its own module to keep Quick Attach cleaner.
+- Reduced routine chat spam from queueing and inbox processing while keeping important summaries and warnings.
+
+## Version 1.0.4 (01/05/2026)
+- Added a Mass Send queue for send-mail workflows that exceed the attachment limit per mail.
+- Extra Alt-clicked items now queue automatically once the current mail is full.
+- Added `Mass Send Queue`, `Start Mass Send`, and `Clear Mass Queue` to the send-mail `EM` menu.
+- After the first successful send, EasyMail now continues queued items across follow-up mails automatically.
+
 ## Version 1.0.3 (30/04/2026)
 - Added a confirmation popup for `DEL` when a mail still contains gold, attachments, or COD.
 - Kept direct `DEL` behavior for empty mails so quick cleanup stays fast.

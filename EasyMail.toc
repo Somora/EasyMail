@@ -2,12 +2,16 @@
 ## Title: Somora's EasyMail
 ## Notes: Lightweight mail quality-of-life addon built from scratch.
 ## Author: Somora
-## Version: 1.0.3
+## Version: 1.0.5
 ## SavedVariables: EasyMailDB
 ## IconTexture: Interface\Icons\INV_Letter_15
 
 Core.lua
 Modules/OpenAll.lua
+Modules/OpenAllSelect.lua
+Modules/MassSend.lua
+Modules/QuickAttach.lua
+Modules/BaganatorCompat.lua
 Modules/SendTools.lua
 
 

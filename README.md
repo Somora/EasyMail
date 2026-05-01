@@ -41,6 +41,11 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Quick attach Recipes.
 - Quick attach Stackables.
 - Alt-click a bag item to attach it instantly while Send Mail is open.
+- Right-click overflow support when the current mail is already full.
+- If a mail is already full, extra Alt-clicked or overflow items are queued for Mass Send and continue across multiple mails.
+- Baganator category-to-mail overflow is supported: the first 12 items attach normally and the rest continue into the Mass Send queue.
+- A dedicated Mass Send Queue popup shows queued items, tooltips, per-item removal, and a clear queue action.
+- The queue popup auto-opens when overflow starts, remembers its last position, and clears automatically when the mail window closes.
 
 ### Mail QoL
 - Automatic wire-style subject filling when sending gold and the subject is blank.
@@ -48,9 +53,10 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Known characters are recorded for alt support.
 - Recipient favorites, default recipient, and notes are saved.
 - Export or reset settings and recipient data from slash commands.
+- Reduced routine chat spam so only important summaries and warnings stay visible during normal use.
 
 ## Version
-- Current release: `1.0.3`
+- Current release: `1.0.5`
 - Game version target: WoW Retail
 - Interface version: `120005`
 
