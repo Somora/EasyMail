@@ -1,6 +1,11 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.6 (02/05/2026)
+- Improved inbox bag-space checks so Open All reacts correctly to newly equipped bag space instead of staying stuck on an old “bags full” state.
+- Added smarter reagent bag handling for inbox looting, so reagent attachments can continue when only reagent bag space is available.
+- Kept the recent Baganator Mass Send overflow compatibility and chat-noise cleanup in the release line.
+
 ## Version 1.0.5 (01/05/2026)
 - Added a dedicated Mass Send Queue popup for queued overflow items.
 - The queue popup now opens automatically when extra Alt-clicked items spill past the mail attachment limit.

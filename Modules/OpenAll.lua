@@ -138,7 +138,8 @@ end
 
 local function getFreeBagSlots()
     local freeSlots = 0
-    for bag = BACKPACK_CONTAINER or 0, NUM_BAG_SLOTS or 4 do
+    local lastBag = NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4
+    for bag = BACKPACK_CONTAINER or 0, lastBag do
         if C_Container and C_Container.GetContainerNumFreeSlots then
             local count = C_Container.GetContainerNumFreeSlots(bag)
             freeSlots = freeSlots + (count or 0)
@@ -148,6 +149,64 @@ local function getFreeBagSlots()
         end
     end
     return freeSlots
+end
+
+local function getFreeBagSlotBuckets()
+    local genericSlots = 0
+    local specialtySlots = {}
+    local reagentSlots = 0
+    local reagentBagIndex = NUM_TOTAL_EQUIPPED_BAG_SLOTS and (NUM_TOTAL_EQUIPPED_BAG_SLOTS > (NUM_BAG_SLOTS or 4)) and NUM_TOTAL_EQUIPPED_BAG_SLOTS or nil
+
+    local lastBag = NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4
+    for bag = BACKPACK_CONTAINER or 0, lastBag do
+        local count, family
+        if C_Container and C_Container.GetContainerNumFreeSlots then
+            count, family = C_Container.GetContainerNumFreeSlots(bag)
+        else
+            count, family = GetContainerNumFreeSlots(bag)
+        end
+
+        count = count or 0
+        family = family or 0
+
+        if family == 0 then
+            genericSlots = genericSlots + count
+        elseif reagentBagIndex and bag == reagentBagIndex then
+            reagentSlots = reagentSlots + count
+        elseif count > 0 then
+            specialtySlots[family] = (specialtySlots[family] or 0) + count
+        end
+    end
+
+    return genericSlots, specialtySlots, reagentSlots
+end
+
+local function getInboxAttachmentDescriptors(index)
+    local descriptors = {}
+
+    for attachmentIndex = 1, ATTACHMENTS_MAX_RECEIVE or 16 do
+        local itemLink = GetInboxItemLink and GetInboxItemLink(index, attachmentIndex)
+        local itemName = nil
+        if not itemLink then
+            itemName = GetInboxItem(index, attachmentIndex)
+        end
+
+        if itemLink then
+            local _, _, _, _, _, _, _, _, _, _, _, classID = GetItemInfo(itemLink)
+            table.insert(descriptors, {
+                family = GetItemFamily and (GetItemFamily(itemLink) or 0) or 0,
+                classID = classID or 0,
+            })
+        elseif itemName then
+            local _, _, _, _, _, _, _, _, _, _, _, classID = GetItemInfo(itemName)
+            table.insert(descriptors, {
+                family = 0,
+                classID = classID or 0,
+            })
+        end
+    end
+
+    return descriptors
 end
 
 local function shouldConfirmDeleteAction(info)
@@ -305,6 +364,80 @@ end
 function module:HasEnoughFreeSlots(neededSlots)
     local reservedSlots = math.max(0, self:GetSettings().leaveFreeSlots or 0)
     return (getFreeBagSlots() - reservedSlots) >= (neededSlots or 1)
+end
+
+function module:GetUsableFreeBagSlots()
+    local reservedSlots = math.max(0, self:GetSettings().leaveFreeSlots or 0)
+    return math.max(0, getFreeBagSlots() - reservedSlots)
+end
+
+function module:CanFitAnyInboxAttachment(index, info)
+    if not info or not info.hasItem then
+        return false, 0
+    end
+
+    local genericSlots, specialtySlots, reagentSlots = getFreeBagSlotBuckets()
+    local reservedSlots = math.max(0, self:GetSettings().leaveFreeSlots or 0)
+
+    if reservedSlots > 0 then
+        local genericReserve = math.min(genericSlots, reservedSlots)
+        genericSlots = genericSlots - genericReserve
+        reservedSlots = reservedSlots - genericReserve
+
+        if reservedSlots > 0 then
+            for family, count in pairs(specialtySlots) do
+                if reservedSlots <= 0 then
+                    break
+                end
+
+                local familyReserve = math.min(count, reservedSlots)
+                specialtySlots[family] = count - familyReserve
+                reservedSlots = reservedSlots - familyReserve
+            end
+
+            if reservedSlots > 0 and reagentSlots > 0 then
+                local reagentReserve = math.min(reagentSlots, reservedSlots)
+                reagentSlots = reagentSlots - reagentReserve
+                reservedSlots = reservedSlots - reagentReserve
+            end
+        end
+    end
+
+    local usableSlots = genericSlots
+    for _, count in pairs(specialtySlots) do
+        usableSlots = usableSlots + count
+    end
+    usableSlots = usableSlots + reagentSlots
+
+    if usableSlots <= 0 then
+        return false, 0
+    end
+
+    local descriptors = getInboxAttachmentDescriptors(index)
+    if #descriptors == 0 then
+        return usableSlots > 0, usableSlots
+    end
+
+    for _, descriptor in ipairs(descriptors) do
+        if genericSlots > 0 then
+            return true, usableSlots
+        end
+
+        local family = descriptor.family or 0
+        if family and family > 0 then
+            for bagFamily, count in pairs(specialtySlots) do
+                if count > 0 and bit.band(family, bagFamily) ~= 0 then
+                    return true, usableSlots
+                end
+            end
+        end
+
+        if reagentSlots > 0 and (descriptor.classID == 7) then
+            return true, usableSlots
+        end
+    end
+
+    return false, usableSlots
 end
 
 function module:CountProcessableMail(filterType)
@@ -712,10 +845,15 @@ function module:TakeFromMail(index, info)
     end
 
     if self:GetEffectiveTakeItems() and info.hasItem then
-        if not self:HasEnoughFreeSlots(info.attachmentCount or 1) then
+        local canFitAttachment, usableSlots = self:CanFitAnyInboxAttachment(index, info)
+        if not canFitAttachment then
             self.stats.bagStops = self.stats.bagStops + 1
             self:StopProcessing("reserved bag space reached")
             return false
+        end
+
+        if usableSlots < (info.attachmentCount or 1) then
+            addon:Debug("Bag space is tighter than this mail's attachment count; trying to loot with " .. usableSlots .. " usable slot(s).")
         end
 
         self.stats.mails = self.stats.mails + 1
