@@ -5,6 +5,7 @@ module.queue = {}
 module.state = nil
 module.viewer = nil
 module.closeHooksApplied = false
+module.sendAttemptToken = 0
 
 local function getContainerNumSlotsCompat(bag)
     if C_Container and C_Container.GetContainerNumSlots then
@@ -443,6 +444,7 @@ function module:Finish(message)
     local sentMails = self.state and self.state.sends or 0
     local queuedLeft = self:GetQueueCount()
 
+    self.sendAttemptToken = self.sendAttemptToken + 1
     self.state = nil
 
     if message then
@@ -469,7 +471,38 @@ function module:CaptureState()
         body = getCurrentBody(),
         sends = 0,
         itemsSent = 0,
+        awaitingResult = false,
     }
+end
+
+function module:BeginAwaitingSendResult()
+    if not self.state then
+        return
+    end
+
+    self.sendAttemptToken = (self.sendAttemptToken or 0) + 1
+    local token = self.sendAttemptToken
+
+    self.state.awaitingResult = true
+    self.state.lastSendAttemptAt = GetTime()
+
+    C_Timer.After(15, function()
+        if not module.state or not module.state.awaitingResult or module.sendAttemptToken ~= token then
+            return
+        end
+
+        module.state.awaitingResult = false
+        module:Finish("Mass Send paused because the game never confirmed the last mail. This can happen with Blizzard mail throttling; click Start Mass Send again to continue.")
+    end)
+end
+
+function module:PerformSend(recipient, subject, body)
+    if not self.state then
+        return
+    end
+
+    self:BeginAwaitingSendResult()
+    SendMail(recipient, subject or "", body or "")
 end
 
 function module:ArmFromCurrentMail()
@@ -517,13 +550,15 @@ function module:StartFromQueue()
     self.state.itemsSent = attached
     self.state.sends = 1
     addon:Print("Mass Send armed for " .. state.recipient .. " with " .. self:GetQueueCount() .. " queued item" .. (self:GetQueueCount() == 1 and "" or "s") .. " remaining.")
-    SendMail(state.recipient, state.subject or "", state.body or "")
+    self:PerformSend(state.recipient, state.subject, state.body)
 end
 
 function module:ContinueAfterSuccess()
     if not self.state then
         return
     end
+
+    self.state.awaitingResult = false
 
     addon:AddRecentRecipient(self.state.recipient)
     addon:SetLastMailedRecipient(self.state.recipient)
@@ -548,11 +583,12 @@ function module:ContinueAfterSuccess()
 
     self.state.itemsSent = (self.state.itemsSent or 0) + attached
     self.state.sends = (self.state.sends or 0) + 1
-    SendMail(self.state.recipient, self.state.subject or "", self.state.body or "")
+    self:PerformSend(self.state.recipient, self.state.subject, self.state.body)
 end
 
 function module:HandleSendFailed()
     if self.state then
+        self.state.awaitingResult = false
         self:Finish("Mass Send stopped after a send failure.")
     end
 end

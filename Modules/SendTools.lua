@@ -650,7 +650,7 @@ function module:OnInitialize()
             module.lastAutoSubject = nil
             local massSend = getMassSendModule()
             if massSend and massSend:IsActive() then
-                C_Timer.After(0.2, function()
+                C_Timer.After(0.4, function()
                     massSend:ContinueAfterSuccess()
                 end)
             end

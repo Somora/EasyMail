@@ -2,7 +2,7 @@
 ## Title: Somora's EasyMail
 ## Notes: Lightweight mail quality-of-life addon built from scratch.
 ## Author: Somora
-## Version: 1.0.6
+## Version: 1.0.7
 ## SavedVariables: EasyMailDB
 ## IconTexture: Interface\Icons\INV_Letter_15
 
