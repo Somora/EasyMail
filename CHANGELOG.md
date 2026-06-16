@@ -1,6 +1,10 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.8 (16/06/2026)
+- Fixed a Blizzard taint issue where EasyMail's Baganator compatibility layer could trigger `ADDON_ACTION_BLOCKED` errors in unrelated protected UI such as Communities.
+- Replaced the global `CallMethodOnNearestAncestor` override with a safe hook-based integration so Baganator overflow support remains intact without poisoning protected Blizzard flows.
+
 ## Version 1.0.7 (06/05/2026)
 - Added a safer Mass Send watchdog so queued sending no longer appears to stall silently when WoW fails to return a send result event.
 - Increased the delay between follow-up Mass Send mails to make the queue flow more tolerant of Blizzard mail throttling.

@@ -169,8 +169,7 @@ function module:EnsureHook()
         return
     end
 
-    local originalCallMethodOnNearestAncestor = CallMethodOnNearestAncestor
-    CallMethodOnNearestAncestor = function(frame, methodName, ...)
+    hooksecurefunc("CallMethodOnNearestAncestor", function(frame, methodName, ...)
         local shouldInspect = SendMailFrame and SendMailFrame:IsShown()
             and (methodName == "TransferCategory" or methodName == "TransferSection")
         local items
@@ -193,16 +192,12 @@ function module:EnsureHook()
             addon:Debug("Baganator ancestor transfer: method=" .. tostring(methodName) .. ", matches=" .. tostring(items and #items or 0) .. ", used=" .. tostring(usedSlots) .. ", max=" .. tostring(maxSlots))
         end
 
-        local results = {originalCallMethodOnNearestAncestor(frame, methodName, ...)}
-
         if shouldInspect and items then
             C_Timer.After(0.1, function()
                 module:QueueOverflowDeferred(items, usedSlots, maxSlots, 1)
             end)
         end
-
-        return unpack(results)
-    end
+    end)
 
     self.ancestorHookApplied = true
 end
