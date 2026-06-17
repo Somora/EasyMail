@@ -56,9 +56,9 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Reduced routine chat spam so only important summaries and warnings stay visible during normal use.
 
 ## Version
-- Current release: `1.0.8`
+- Current release: `1.0.9`
 - Game version target: WoW Retail
-- Interface version: `120005`
+- Interface version: `120007`
 
 ## Install
 Copy the `EasyMail` folder into your WoW addon directory so it ends up like this:

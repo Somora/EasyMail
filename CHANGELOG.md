@@ -1,6 +1,9 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.9 (17/06/2026)
+- Updated the WoW Retail interface version to `120007`.
+
 ## Version 1.0.8 (16/06/2026)
 - Fixed a Blizzard taint issue where EasyMail's Baganator compatibility layer could trigger `ADDON_ACTION_BLOCKED` errors in unrelated protected UI such as Communities.
 - Replaced the global `CallMethodOnNearestAncestor` override with a safe hook-based integration so Baganator overflow support remains intact without poisoning protected Blizzard flows.
