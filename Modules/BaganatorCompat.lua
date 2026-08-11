@@ -1,7 +1,7 @@
 local addon = EasyMail
 local module = {}
 
-module.ancestorHookApplied = false
+module.categoryHookApplied = false
 
 local function getMassSendModule()
     return addon.modules and addon.modules.MassSend or nil
@@ -53,32 +53,6 @@ local function getNearestAncestorWithMethod(frame, methodName)
         current = current.GetParent and current:GetParent() or nil
     end
     return nil
-end
-
-local function getBaganatorSectionMatches(frame, tree)
-    if not frame or type(tree) ~= "table" or type(frame.GetActiveLayouts) ~= "function" then
-        return nil
-    end
-
-    local matches = {}
-    for _, layout in ipairs(frame:GetActiveLayouts() or {}) do
-        if layout.type == "category" then
-            local rootMatch = true
-            for index, label in ipairs(tree) do
-                rootMatch = layout.section[index] == label
-                if not rootMatch then
-                    break
-                end
-            end
-            if rootMatch and layout.SearchMonitor and layout.SearchMonitor.GetMatches then
-                for _, entry in ipairs(layout.SearchMonitor:GetMatches() or {}) do
-                    table.insert(matches, entry)
-                end
-            end
-        end
-    end
-
-    return matches
 end
 
 function module:HandleOverflow(items, usedSlots, maxSlots)
@@ -150,7 +124,7 @@ function module:QueueOverflowDeferred(items, usedSlots, maxSlots, attempt)
 
     if #overflowEntries > 0 then
         addon:Debug("Baganator deferred overflow attempt " .. tostring(attempt) .. ": queueing " .. tostring(#overflowEntries) .. " item(s).")
-        self:HandleOverflow(overflowEntries, freeSlots, 0)
+        self:HandleOverflow(overflowEntries, usedSlots, maxSlots)
         return
     end
 
@@ -164,42 +138,43 @@ function module:QueueOverflowDeferred(items, usedSlots, maxSlots, attempt)
     end
 end
 
-function module:EnsureHook()
-    if self.ancestorHookApplied or type(CallMethodOnNearestAncestor) ~= "function" then
+function module:HandleCategoryClick(button, mouseButton)
+    if mouseButton ~= "RightButton" or not button or not button.sourceKey then
         return
     end
 
-    hooksecurefunc("CallMethodOnNearestAncestor", function(frame, methodName, ...)
-        local shouldInspect = SendMailFrame and SendMailFrame:IsShown()
-            and (methodName == "TransferCategory" or methodName == "TransferSection")
-        local items
-        local usedSlots, maxSlots
+    if not SendMailFrame or not SendMailFrame:IsShown() then
+        return
+    end
 
-        if shouldInspect then
-            local ancestor = getNearestAncestorWithMethod(frame, methodName)
-            usedSlots, maxSlots = getUsedAttachmentSlots()
+    local ancestor = getNearestAncestorWithMethod(button, "TransferCategory")
+    local layout = ancestor and ancestor.layoutsBySourceKey and ancestor.layoutsBySourceKey[button.sourceKey] or nil
+    if not layout or not layout.SearchMonitor or not layout.SearchMonitor.GetMatches then
+        return
+    end
 
-            if methodName == "TransferCategory" then
-                local sourceKey = ...
-                local layout = ancestor and ancestor.layoutsBySourceKey and ancestor.layoutsBySourceKey[sourceKey] or nil
-                if layout and layout.SearchMonitor and layout.SearchMonitor.GetMatches then
-                    items = layout.SearchMonitor:GetMatches()
-                end
-            elseif methodName == "TransferSection" then
-                items = getBaganatorSectionMatches(ancestor, ...)
-            end
+    local items = layout.SearchMonitor:GetMatches()
+    local usedSlots, maxSlots = getUsedAttachmentSlots()
 
-            addon:Debug("Baganator ancestor transfer: method=" .. tostring(methodName) .. ", matches=" .. tostring(items and #items or 0) .. ", used=" .. tostring(usedSlots) .. ", max=" .. tostring(maxSlots))
-        end
+    addon:Debug("Baganator category transfer: matches=" .. tostring(items and #items or 0) .. ", used=" .. tostring(usedSlots) .. ", max=" .. tostring(maxSlots))
 
-        if shouldInspect and items then
-            C_Timer.After(0.1, function()
-                module:QueueOverflowDeferred(items, usedSlots, maxSlots, 1)
-            end)
-        end
+    if items and #items > 0 then
+        C_Timer.After(0.1, function()
+            module:QueueOverflowDeferred(items, usedSlots, maxSlots, 1)
+        end)
+    end
+end
+
+function module:EnsureHook()
+    if self.categoryHookApplied or not BaganatorCategoryViewsCategoryButtonMixin or not BaganatorCategoryViewsCategoryButtonMixin.OnClick then
+        return
+    end
+
+    hooksecurefunc(BaganatorCategoryViewsCategoryButtonMixin, "OnClick", function(button, mouseButton)
+        module:HandleCategoryClick(button, mouseButton)
     end)
 
-    self.ancestorHookApplied = true
+    self.categoryHookApplied = true
 end
 
 function module:OnInitialize()
