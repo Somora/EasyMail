@@ -1,6 +1,9 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.11 (12/08/2026)
+- Updated the WoW Retail interface version to `120100`.
+
 ## Version 1.0.10 (11/08/2026)
 - Fixed a Blizzard taint issue caused by EasyMail's Baganator compatibility hook touching protected Cooldown Viewer and related Blizzard UI flows.
 - Replaced the broad Baganator hook with a narrower category-button hook so normal EasyMail features stay taint-free.

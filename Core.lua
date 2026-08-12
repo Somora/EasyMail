@@ -3,7 +3,7 @@ EasyMail = EasyMail or {}
 local addon = EasyMail
 
 addon.name = "EasyMail"
-addon.version = "1.0.10"
+addon.version = "1.0.11"
 addon.modules = {}
 addon.defaults = {
     debug = false,

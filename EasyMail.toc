@@ -1,8 +1,8 @@
-## Interface: 120007
+## Interface: 120100
 ## Title: Somora's EasyMail
 ## Notes: Lightweight mail quality-of-life addon built from scratch.
 ## Author: Somora
-## Version: 1.0.10
+## Version: 1.0.11
 ## SavedVariables: EasyMailDB
 ## IconTexture: Interface\Icons\INV_Letter_15
 
