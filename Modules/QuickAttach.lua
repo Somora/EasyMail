@@ -1,4 +1,5 @@
 local addon = EasyMail
+local GetItemInfo = addon.compat.GetItemInfo
 local module = {}
 
 module.hookApplied = false
@@ -68,22 +69,7 @@ local function getContainerItemLinkCompat(bag, slot)
     return GetContainerItemLink and GetContainerItemLink(bag, slot) or nil
 end
 
-local function getContainerItemInfoCompat(bag, slot)
-    if C_Container and C_Container.GetContainerItemInfo then
-        return C_Container.GetContainerItemInfo(bag, slot)
-    end
-
-    local texture, itemCount, locked = GetContainerItemInfo and GetContainerItemInfo(bag, slot)
-    if not texture then
-        return nil
-    end
-
-    return {
-        iconFileID = texture,
-        stackCount = itemCount,
-        isLocked = locked,
-    }
-end
+local getContainerItemInfoCompat = addon.compat.GetContainerItemInfo
 
 local function getUsedAttachmentSlots()
     local used = 0
@@ -114,19 +100,7 @@ local function isAttachmentLimitError(message)
     return normalized:find("attach more than 12 items", 1, true) ~= nil
 end
 
-local function getContainerLocation(button)
-    if not button then
-        return nil, nil
-    end
-
-    local bag = button.GetBagID and button:GetBagID() or button.bagID or button:GetParent() and button:GetParent().bagID
-    local slot = button.GetID and button:GetID() or button.slotIndex or button.slot
-    if bag == nil or slot == nil then
-        return nil, nil
-    end
-
-    return bag, slot
-end
+local getContainerLocation = addon.compat.GetContainerLocation
 
 function module:AttachContainerItem(bag, slot)
     if bag == nil or slot == nil or not SendMailFrame or not SendMailFrame:IsShown() then
@@ -171,7 +145,7 @@ end
 
 function module:GetMatchCount(definition)
     local count = 0
-    for bag = BACKPACK_CONTAINER or 0, NUM_BAG_SLOTS or 4 do
+    for bag = BACKPACK_CONTAINER or 0, addon.compat.GetLastBagIndex() do
         local numSlots = getContainerNumSlotsCompat(bag) or 0
         for slot = 1, numSlots do
             local itemInfo = getContainerItemInfoCompat(bag, slot)
@@ -200,7 +174,7 @@ function module:AttachByDefinition(definition)
 
     local attached = 0
     local matched = 0
-    for bag = BACKPACK_CONTAINER or 0, NUM_BAG_SLOTS or 4 do
+    for bag = BACKPACK_CONTAINER or 0, addon.compat.GetLastBagIndex() do
         local numSlots = getContainerNumSlotsCompat(bag) or 0
         for slot = 1, numSlots do
             if attached >= freeSlots then
@@ -365,11 +339,11 @@ function module:EnsureBagHook()
             end)
         end
         if C_Container and C_Container.PickupContainerItem then
-            hooksecurefunc(C_Container, "PickupContainerItem", function(_, bag, slot)
+            hooksecurefunc(C_Container, "PickupContainerItem", function(bag, slot)
                 module:HandlePickupRoute(bag, slot)
             end)
         end
-        self.pickupHookApplied = true
+        self.pickupHookApplied = PickupContainerItem ~= nil or (C_Container and C_Container.PickupContainerItem ~= nil)
     end
 
     if not self.useHookApplied then
@@ -379,11 +353,11 @@ function module:EnsureBagHook()
             end)
         end
         if C_Container and C_Container.UseContainerItem then
-            hooksecurefunc(C_Container, "UseContainerItem", function(_, bag, slot)
+            hooksecurefunc(C_Container, "UseContainerItem", function(bag, slot)
                 module:HandleUseRoute(bag, slot)
             end)
         end
-        self.useHookApplied = true
+        self.useHookApplied = UseContainerItem ~= nil or (C_Container and C_Container.UseContainerItem ~= nil)
     end
 end
 

@@ -23,22 +23,7 @@ local function getContainerItemLinkCompat(bag, slot)
     return GetContainerItemLink and GetContainerItemLink(bag, slot) or nil
 end
 
-local function getContainerItemInfoCompat(bag, slot)
-    if C_Container and C_Container.GetContainerItemInfo then
-        return C_Container.GetContainerItemInfo(bag, slot)
-    end
-
-    local texture, itemCount, locked = GetContainerItemInfo and GetContainerItemInfo(bag, slot)
-    if not texture then
-        return nil
-    end
-
-    return {
-        iconFileID = texture,
-        stackCount = itemCount,
-        isLocked = locked,
-    }
-end
+local getContainerItemInfoCompat = addon.compat.GetContainerItemInfo
 
 local function getUsedAttachmentSlots()
     local used = 0
@@ -189,7 +174,7 @@ function module:EnsureQueueViewer()
         return
     end
 
-    local frame = CreateFrame("Frame", "EasyMailMassSendQueueViewer", UIParent, "BackdropTemplate")
+    local frame = CreateFrame("Frame", "EasyMailMassSendQueueViewer", UIParent, addon.compat.backdropTemplate)
     frame:SetSize(420, 300)
     frame:SetFrameStrata("DIALOG")
     frame:SetClampedToScreen(true)
@@ -294,7 +279,7 @@ function module:RefreshQueueViewer()
                 GameTooltip:Hide()
             end)
 
-            row.removeButton = CreateFrame("Button", nil, row, "BackdropTemplate")
+            row.removeButton = CreateFrame("Button", nil, row, addon.compat.backdropTemplate)
             row.removeButton:SetSize(16, 16)
             row.removeButton:SetPoint("RIGHT", row, "RIGHT", -2, 0)
             row.removeButton:SetBackdrop({

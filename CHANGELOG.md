@@ -1,6 +1,13 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.12 (08/10/2026)
+- Added capability-based compatibility for legacy and modern container/item APIs and backdrop frames.
+- Fixed legacy container item counts and lock status, Classic bag-button location detection, and modern container hook arguments.
+- Added guild roster API fallback and delayed addon hook discovery.
+- Added one shared addon manifest listing Retail, Classic client families, and Forever beta interface versions; no client-specific build step is needed.
+- Confirmed working in TBC Anniversary through user testing; other added clients remain pending in-game validation.
+
 ## Version 1.0.11 (12/08/2026)
 - Updated the WoW Retail interface version to `120100`.
 

@@ -1,4 +1,6 @@
 local addon = EasyMail
+local GetItemInfo = addon.compat.GetItemInfo
+local GetItemFamily = addon.compat.GetItemFamily
 local module = {}
 
 module.isProcessing = false
@@ -667,7 +669,7 @@ function module:EnsureExpiryIndicator(displayIndex)
     holder:SetSize(26, 14)
     holder:SetPoint("TOP", expireTime, "BOTTOM", 29, 0)
 
-    local delButton = CreateFrame("Button", nil, holder, "BackdropTemplate")
+    local delButton = CreateFrame("Button", nil, holder, addon.compat.backdropTemplate)
     delButton:SetSize(26, 14)
     delButton:SetPoint("CENTER", holder, "CENTER", 0, 0)
     styleExpiryActionButton(delButton)

@@ -15,22 +15,7 @@ local function getContainerItemLinkCompat(bag, slot)
     return GetContainerItemLink and GetContainerItemLink(bag, slot) or nil
 end
 
-local function getContainerItemInfoCompat(bag, slot)
-    if C_Container and C_Container.GetContainerItemInfo then
-        return C_Container.GetContainerItemInfo(bag, slot)
-    end
-
-    local texture, itemCount, locked = GetContainerItemInfo and GetContainerItemInfo(bag, slot)
-    if not texture then
-        return nil
-    end
-
-    return {
-        iconFileID = texture,
-        stackCount = itemCount,
-        isLocked = locked,
-    }
-end
+local getContainerItemInfoCompat = addon.compat.GetContainerItemInfo
 
 local function getUsedAttachmentSlots()
     local used = 0

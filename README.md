@@ -1,6 +1,6 @@
 # EasyMail
 
-EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch. It takes inspiration from Postal-style quality-of-life features, but keeps the codebase smaller, clearer, and easier to maintain.
+EasyMail is a lightweight World of Warcraft mail addon built from scratch. It takes inspiration from Postal-style quality-of-life features, but keeps the codebase smaller, clearer, and easier to maintain.
 
 ## Features
 
@@ -56,9 +56,25 @@ EasyMail is a lightweight World of Warcraft Retail mail addon built from scratch
 - Reduced routine chat spam so only important summaries and warnings stay visible during normal use.
 
 ## Version
-- Current release: `1.0.11`
-- Game version target: WoW Retail
-- Interface version: `120100`
+- Current release: `1.0.12`
+- Game version targets: Retail, Classic client families, and Forever beta (TBC Anniversary tested; other added clients pending in-game validation).
+- Interface versions: `11509`, `20506`, `30405`, `38000`, `40402`, `50504`, `120100`, `16001`.
+
+## Other WoW clients and Forever beta
+
+Install the same `EasyMail` folder in each client's `Interface/AddOns` directory. One `EasyMail.toc` lists the interface versions and loads the same Lua files for every client. No build script or separate package is required. The shared code detects modern and legacy container, item, guild, and backdrop APIs.
+
+The interface numbers are based on the [Myslot manifest](https://github.com/tg123/myslot/blob/master/Myslot.toc), with Era and Anniversary updated for the installed 1.15.9 and 2.5.6 clients. Forever beta `16001` is also documented by [ForeverGuide](https://github.com/prezus/ForeverGuide). These identify client versions, not completed EasyMail in-game tests. Other clients still need verification.
+
+If a client update marks the addon out of date, check its interface number with:
+
+```text
+/dump select(4, GetBuildInfo())
+```
+
+Update the corresponding number in the comma-separated `## Interface:` list in `EasyMail.toc`. Keep the folder name `EasyMail`.
+
+Before relying on another client, test opening the mailbox, selected mail, money and attachments, full bags, COD filters, sending, Alt-click attach, and overflow queues. Verify locked items remain untouched and reopen the mailbox after closing it. Test optional Baganator integration separately when available.
 
 ## Install
 Copy the `EasyMail` folder into your WoW addon directory so it ends up like this:

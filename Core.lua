@@ -3,7 +3,7 @@ EasyMail = EasyMail or {}
 local addon = EasyMail
 
 addon.name = "EasyMail"
-addon.version = "1.0.11"
+addon.version = "1.0.12"
 addon.modules = {}
 addon.defaults = {
     debug = false,
@@ -476,7 +476,9 @@ function addon:GetGuildRecipients()
         return results
     end
 
-    if GuildRoster then
+    if C_GuildInfo and C_GuildInfo.GuildRoster then
+        C_GuildInfo.GuildRoster()
+    elseif GuildRoster then
         GuildRoster()
     end
 
@@ -507,7 +509,7 @@ function addon:GetGuildRecipients()
 end
 
 function addon:CreateButton(parent, label, width, height, anchorPoint, relativeTo, relativePoint, offsetX, offsetY)
-    local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    local button = CreateFrame("Button", nil, parent, addon.compat.backdropTemplate)
     button:SetSize(width or 96, height or 22)
     button:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -574,7 +576,7 @@ function addon:HideContextMenu()
 end
 
 function addon:CreateContextMenu(name)
-    local menu = CreateFrame("Frame", name, UIParent, "BackdropTemplate")
+    local menu = CreateFrame("Frame", name, UIParent, addon.compat.backdropTemplate)
     menu:SetFrameStrata("DIALOG")
     menu:SetClampedToScreen(true)
     menu:SetBackdrop({
@@ -721,7 +723,7 @@ end
 
 function addon:ShowCopyDialog(title, text)
     if not self.copyDialog then
-        local dialog = CreateFrame("Frame", "EasyMailCopyDialog", UIParent, "BackdropTemplate")
+        local dialog = CreateFrame("Frame", "EasyMailCopyDialog", UIParent, addon.compat.backdropTemplate)
         dialog:SetSize(560, 260)
         dialog:SetPoint("CENTER")
         dialog:SetFrameStrata("DIALOG")
@@ -846,11 +848,19 @@ SLASH_EASYMAIL2 = "/em"
 SlashCmdList.EASYMAIL = slashCommand
 
 frame:RegisterEvent("ADDON_LOADED")
-frame:RegisterEvent("GLOBAL_MOUSE_DOWN")
+addon.compat.RegisterOptionalEvent(frame, "GLOBAL_MOUSE_DOWN")
 frame:RegisterEvent("MAIL_CLOSED")
 frame:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addon.name then
         addon:Initialize()
+        return
+    end
+
+    if event == "ADDON_LOADED" then
+        local quickAttach = addon.modules.QuickAttach
+        if quickAttach then quickAttach:EnsureBagHook() end
+        local baganator = addon.modules.BaganatorCompat
+        if baganator then baganator:EnsureHook() end
         return
     end
 
