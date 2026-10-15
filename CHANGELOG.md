@@ -1,6 +1,10 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.13 (15/10/2026)
+- Updated the WoW Retail interface version to `120105` for patch 12.1.5.
+- Kept the existing Classic and Forever interface targets unchanged.
+
 ## Version 1.0.12 (08/10/2026)
 - Added capability-based compatibility for legacy and modern container/item APIs and backdrop frames.
 - Fixed legacy container item counts and lock status, Classic bag-button location detection, and modern container hook arguments.
