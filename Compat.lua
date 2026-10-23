@@ -7,6 +7,26 @@ compat.backdropTemplate = BackdropTemplateMixin and "BackdropTemplate" or nil
 compat.GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
 compat.GetItemFamily = C_Item and C_Item.GetItemFamily or GetItemFamily
 
+-- Check before comparing, branching on, or transforming values from restricted APIs.
+-- Classic clients do not expose the secret-value API.
+function compat.IsPublicValue(value)
+    return not issecretvalue or not issecretvalue(value)
+end
+
+function compat.GetTargetName()
+    local exists = UnitExists("target")
+    if not compat.IsPublicValue(exists) or not exists then return nil end
+    local isPlayer = UnitIsPlayer("target")
+    if not compat.IsPublicValue(isPlayer) or not isPlayer then return nil end
+    local isSelf = UnitIsUnit("target", "player")
+    if not compat.IsPublicValue(isSelf) or isSelf then return nil end
+    local name, realm = UnitName("target")
+    if not compat.IsPublicValue(name) or not compat.IsPublicValue(realm) then return nil end
+    if not name or name == "" then return nil end
+    if realm and realm ~= "" then return name .. "-" .. realm end
+    return name
+end
+
 function compat.GetContainerItemInfo(bag, slot)
     if bag == nil or slot == nil then
         return nil

@@ -3,7 +3,7 @@ EasyMail = EasyMail or {}
 local addon = EasyMail
 
 addon.name = "EasyMail"
-addon.version = "1.0.13"
+addon.version = "1.0.14"
 addon.modules = {}
 addon.defaults = {
     debug = false,
@@ -54,21 +54,6 @@ addon.frame = frame
 addon.activeMenu = nil
 addon.menuCloseIgnoreUntil = 0
 
-local function isFrameOrChild(frameToCheck, candidate)
-    if not frameToCheck or not candidate then
-        return false
-    end
-
-    local current = candidate
-    while current do
-        if current == frameToCheck then
-            return true
-        end
-        current = current.GetParent and current:GetParent() or nil
-    end
-
-    return false
-end
 
 local function isCursorOverFrame(frameToCheck)
     if not frameToCheck or not frameToCheck.IsShown or not frameToCheck:IsShown() then
@@ -79,6 +64,10 @@ local function isCursorOverFrame(frameToCheck)
     local right = frameToCheck.GetRight and frameToCheck:GetRight() or nil
     local top = frameToCheck.GetTop and frameToCheck:GetTop() or nil
     local bottom = frameToCheck.GetBottom and frameToCheck:GetBottom() or nil
+    if not addon.compat.IsPublicValue(left) or not addon.compat.IsPublicValue(right)
+        or not addon.compat.IsPublicValue(top) or not addon.compat.IsPublicValue(bottom) then
+        return false
+    end
     if not left or not right or not top or not bottom then
         return false
     end
@@ -182,7 +171,7 @@ function addon:GetSendToolsSettings()
 end
 
 function addon:NormalizeRecipient(name)
-    if not name then
+    if not self.compat.IsPublicValue(name) or not name then
         return nil
     end
 
@@ -871,11 +860,6 @@ frame:SetScript("OnEvent", function(_, event, arg1)
 
     if event == "GLOBAL_MOUSE_DOWN" and addon.activeMenu and addon.activeMenu:IsShown() then
         if GetTime() < (addon.menuCloseIgnoreUntil or 0) then
-            return
-        end
-
-        local focus = GetMouseFocus and GetMouseFocus() or nil
-        if isFrameOrChild(addon.activeMenu, focus) or isFrameOrChild(addon.activeMenu.anchor, focus) then
             return
         end
 

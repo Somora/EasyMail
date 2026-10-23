@@ -7,8 +7,6 @@ module.mixinHookApplied = false
 module.clickHookApplied = false
 module.pickupHookApplied = false
 module.useHookApplied = false
-module.errorFilterApplied = false
-module.errorEventFilterApplied = false
 module.lastHandledKey = nil
 module.lastHandledAt = 0
 module.definitions = {
@@ -87,18 +85,6 @@ local function getQueueKey(bag, slot)
     return tostring(bag) .. ":" .. tostring(slot)
 end
 
-local function isAttachmentLimitError(message)
-    if not message then
-        return false
-    end
-
-    if ERR_MAIL_ATTACH_LIMIT and message == ERR_MAIL_ATTACH_LIMIT then
-        return true
-    end
-
-    local normalized = string.lower(tostring(message))
-    return normalized:find("attach more than 12 items", 1, true) ~= nil
-end
 
 local getContainerLocation = addon.compat.GetContainerLocation
 
@@ -126,18 +112,6 @@ function module:AttachContainerItem(bag, slot)
     return true
 end
 
-function module:ShouldSuppressAttachmentLimitError(message)
-    if not isAttachmentLimitError(message) then
-        return false
-    end
-
-    if not SendMailFrame or not SendMailFrame:IsShown() then
-        return false
-    end
-
-    local usedSlots, maxSlots = getUsedAttachmentSlots()
-    return usedSlots >= maxSlots
-end
 
 function module:GetDefinitions()
     return self.definitions
@@ -361,50 +335,8 @@ function module:EnsureBagHook()
     end
 end
 
-function module:EnsureErrorFilter()
-    if self.errorFilterApplied or not UIErrorsFrame or not UIErrorsFrame.AddMessage then
-        return
-    end
-
-    local originalAddMessage = UIErrorsFrame.AddMessage
-    UIErrorsFrame.AddMessage = function(frame, message, ...)
-        if module:ShouldSuppressAttachmentLimitError(message) then
-            return
-        end
-        return originalAddMessage(frame, message, ...)
-    end
-
-    self.errorFilterApplied = true
-end
-
-function module:EnsureErrorEventFilter()
-    if self.errorEventFilterApplied or not UIErrorsFrame then
-        return
-    end
-
-    local originalOnEvent = UIErrorsFrame:GetScript("OnEvent")
-    if not originalOnEvent then
-        return
-    end
-
-    UIErrorsFrame:SetScript("OnEvent", function(frame, event, ...)
-        if event == "UI_ERROR_MESSAGE" then
-            local _, message = ...
-            if module:ShouldSuppressAttachmentLimitError(message) then
-                return
-            end
-        end
-
-        return originalOnEvent(frame, event, ...)
-    end)
-
-    self.errorEventFilterApplied = true
-end
-
 function module:OnInitialize()
     self:EnsureBagHook()
-    self:EnsureErrorFilter()
-    self:EnsureErrorEventFilter()
 end
 
 addon:RegisterModule("QuickAttach", module)

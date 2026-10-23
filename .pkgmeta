@@ -3,6 +3,8 @@
 manual-changelog: CHANGELOG.md
 
 ignore:
+  - tests
+  - API-REVIEW.md
   - .git
   - .github
   - .gitattributes

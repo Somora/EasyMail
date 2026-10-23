@@ -86,15 +86,7 @@ getCurrentRecipient = function()
 end
 
 getTargetRecipient = function()
-    if UnitExists("target") and UnitIsPlayer("target") and not UnitIsUnit("target", "player") then
-        local name, realm = UnitName("target")
-        if realm and realm ~= "" then
-            return addon:NormalizeRecipient(name .. "-" .. realm)
-        end
-        return addon:NormalizeRecipient(name)
-    end
-
-    return nil
+    return addon:NormalizeRecipient(addon.compat.GetTargetName())
 end
 
 local function appendRecipientNote(label, recipientName)

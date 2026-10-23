@@ -467,7 +467,7 @@ function module:HideBlizzardButton()
             and button.GetText
         then
             local text = button:GetText()
-            if text == OPEN_ALL_MAIL or text == "Open All" then
+            if addon.compat.IsPublicValue(text) and (text == OPEN_ALL_MAIL or text == "Open All") then
                 button:Hide()
                 button:EnableMouse(false)
                 button:SetAlpha(0)
@@ -1374,6 +1374,10 @@ function module:OnInitialize()
         elseif event == "MAIL_CLOSED" and module.isProcessing then
             module:StopProcessing("mailbox closed")
         elseif event == "UI_ERROR_MESSAGE" and module.isProcessing then
+            -- This event is global and can carry restricted combat errors too.
+            if not addon.compat.IsPublicValue(arg1) or not addon.compat.IsPublicValue(arg2) then
+                return
+            end
             local message = arg2 or arg1
             if message == ERR_INV_FULL or message == ERR_ITEM_MAX_COUNT or message == ERR_ITEM_MAX_COUNT_SOCKETED then
                 if module:GetSettings().stopOnBagsFull then
