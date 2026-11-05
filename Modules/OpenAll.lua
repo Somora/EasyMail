@@ -1206,6 +1206,24 @@ function module:ToggleMenu(anchor)
     addon:ToggleContextMenu(self.menuFrame, anchor, self:BuildMenuItems(anchor))
 end
 
+function module:LayoutButtons()
+    if not self.button then return end
+
+    local _, _, _, interface = GetBuildInfo()
+    local isForever = interface and interface >= 16000 and interface < 17000
+    self.button:ClearAllPoints()
+    self.menuButton:ClearAllPoints()
+    if isForever and MailFrame then
+        -- Forever's InboxFrame is a content region, not the outer mail window.
+        -- Center the complete 312px row in the footer below the inbox content.
+        self.button:SetPoint("BOTTOM", MailFrame, "BOTTOM", -119, 16)
+        self.menuButton:SetPoint("TOPRIGHT", MailFrame, "TOPRIGHT", -16, -38)
+    else
+        self.button:SetPoint("BOTTOM", InboxFrame, "BOTTOM", -145, 102)
+        self.menuButton:SetPoint("TOPRIGHT", InboxFrame, "TOPRIGHT", -68, -30)
+    end
+end
+
 function module:EnsureUi()
     if self.isUiReady or not InboxFrame then
         return
@@ -1288,6 +1306,7 @@ function module:EnsureUi()
     self.returnSelectedButton = returnSelectedButton
     self.ahSoldButton = ahSoldButton
     self.menuButton = menuButton
+    self:LayoutButtons()
     self:ApplyButtonScripts(button)
     self.isUiReady = true
     self:UpdateButtonState()
@@ -1308,6 +1327,7 @@ function module:EnsureUi()
     end
 
     InboxFrame:HookScript("OnShow", function()
+        module:LayoutButtons()
         module:HideBlizzardButton()
         CheckInbox()
         module:UpdateButtonState()

@@ -1,6 +1,10 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.15 (05/11/2026)
+- Centered the inbox action buttons in the Forever mail window footer and moved its EM menu into the header. Other clients keep their existing layout.
+- Confirmed the corrected button placement in Forever through user testing.
+
 ## Version 1.0.14 (23/10/2026)
 - Removed global UIErrorsFrame method and event-handler replacements to avoid tainting unrelated Blizzard error handling. Attachment-limit errors are now left visible.
 - Skip restricted target identities, secret inbox error messages, and secret frame coordinates/text before inspecting them.
