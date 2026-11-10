@@ -1,6 +1,11 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.16 (10/11/2026)
+- Fixed inbox row indexes and refreshes after page changes in Forever, including controller navigation.
+- Avoided repeating Forever's built-in modified-click auto-loot and handled numeric inbox attachment counts.
+- Skip guild recipient lookup when the client does not expose the guild roster reader.
+
 ## Version 1.0.15 (05/11/2026)
 - Centered the inbox action buttons in the Forever mail window footer and moved its EM menu into the header. Other clients keep their existing layout.
 - Confirmed the corrected button placement in Forever through user testing.

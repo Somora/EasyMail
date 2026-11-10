@@ -3,7 +3,7 @@ EasyMail = EasyMail or {}
 local addon = EasyMail
 
 addon.name = "EasyMail"
-addon.version = "1.0.15"
+addon.version = "1.0.16"
 addon.modules = {}
 addon.defaults = {
     debug = false,
@@ -461,7 +461,7 @@ function addon:GetGuildRecipients()
     local seen = {}
     local current = self:GetPlayerFullName()
 
-    if not IsInGuild or not IsInGuild() then
+    if not IsInGuild or not IsInGuild() or not GetGuildRosterInfo then
         return results
     end
 

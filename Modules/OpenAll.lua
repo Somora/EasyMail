@@ -31,9 +31,14 @@ local function getInboxCount()
 end
 
 local function getInboxItemIndex(button)
-    if not button or not button.GetID then
+    if not button then
         return nil
     end
+    -- Modern mailbox buttons store the absolute index, not a page-relative ID.
+    if type(button.index) == "number" and button.index > 0 then
+        return button.index
+    end
+    if not button.GetID or button:GetID() < 1 then return nil end
 
     local page = 1
     if InboxFrame and InboxFrame.pageNum then
@@ -42,6 +47,11 @@ local function getInboxItemIndex(button)
 
     local perPage = INBOXITEMS_TO_DISPLAY or 7
     return ((page - 1) * perPage) + button:GetID()
+end
+
+local function isForeverClient()
+    local _, _, _, interface = GetBuildInfo()
+    return interface and interface >= 16000 and interface < 17000
 end
 
 local function getDisplayMailFrames(displayIndex)
@@ -95,6 +105,7 @@ local function getMailInfo(index)
     end
 
     local _, _, sender, subject, money, codAmount, daysLeft, hasItem, _, _, _, _, isGM = GetInboxHeaderInfo(index)
+    if type(hasItem) == "number" then hasItem = hasItem > 0 end
     return {
         sender = sender,
         subject = subject,
@@ -557,6 +568,10 @@ function module:HandleReturnSelectedClick()
 end
 
 function module:HandleInboxRowClick(button)
+    -- Forever already processes its configured auto-loot modifier before our post-hook.
+    if isForeverClient() and IsModifiedClick and IsModifiedClick("MAILAUTOLOOTTOGGLE") then
+        return
+    end
     local index = getInboxItemIndex(button)
     if not index or index < 1 or index > getInboxCount() then
         return
@@ -1209,11 +1224,9 @@ end
 function module:LayoutButtons()
     if not self.button then return end
 
-    local _, _, _, interface = GetBuildInfo()
-    local isForever = interface and interface >= 16000 and interface < 17000
     self.button:ClearAllPoints()
     self.menuButton:ClearAllPoints()
-    if isForever and MailFrame then
+    if isForeverClient() and MailFrame then
         -- Forever's InboxFrame is a content region, not the outer mail window.
         -- Center the complete 312px row in the footer below the inbox content.
         self.button:SetPoint("BOTTOM", MailFrame, "BOTTOM", -119, 16)
@@ -1335,23 +1348,27 @@ function module:EnsureUi()
         module:UpdateVisibleSelections()
     end)
 
-    if InboxPrevPageButton then
-        InboxPrevPageButton:HookScript("OnClick", function()
-            C_Timer.After(0, function()
-                module:UpdateVisibleExpiryIndicators()
-                module:UpdateVisibleSelections()
-            end)
-        end)
-    end
+    self:HookPageNavigation()
+end
 
-    if InboxNextPageButton then
-        InboxNextPageButton:HookScript("OnClick", function()
-            C_Timer.After(0, function()
-                module:UpdateVisibleExpiryIndicators()
-                module:UpdateVisibleSelections()
-            end)
+function module:HookPageNavigation()
+    local function refreshRows()
+        C_Timer.After(0, function()
+            module:UpdateVisibleExpiryIndicators()
+            module:UpdateVisibleSelections()
         end)
     end
+    local function hook(button, method)
+        if not button then return end
+        if type(button[method]) == "function" then
+            -- Both mouse and controller navigation call these methods in Forever.
+            hooksecurefunc(button, method, refreshRows)
+        else
+            button:HookScript("OnClick", refreshRows)
+        end
+    end
+    hook(InboxFrame.PrevPageButton or InboxPrevPageButton, "PrevPage")
+    hook(InboxFrame.NextPageButton or InboxNextPageButton, "NextPage")
 end
 
 function module:OnInitialize()

@@ -74,7 +74,7 @@ class ApiSafetyTests(unittest.TestCase):
             assert(UIErrorsFrame.AddMessage == originalErrorHandler)
         ''')
 
-    def test_inbox_secret_error_ignored_and_public_error_still_stops(self):
+    def load_open_all(self):
         self.run_lua('''
             function CreateFrame()
                 return {Hide=function() end, RegisterEvent=function() end,
@@ -89,6 +89,53 @@ class ApiSafetyTests(unittest.TestCase):
             CreateFrame = function() processor = create() return processor end
         ''')
         self.lua.execute((ROOT / 'Modules/OpenAll.lua').read_text())
+
+    def test_forever_row_click_uses_absolute_index_without_repeating_native_loot(self):
+        self.load_open_all()
+        self.run_lua('''
+            GetBuildInfo = function() return nil, nil, nil, 16001 end
+            InboxFrame = {pageNum=2}
+            GetInboxNumItems = function() return 9 end
+            GetInboxHeaderInfo = function(index)
+                assert(index == 8)
+                return nil, nil, "Sender", "Subject", 0, 0, 10, 0
+            end
+            GetInboxItem = function() error("No attachments to scan") end
+            IsControlKeyDown = function() return true end
+            ReturnInboxItem = function(index) returned = index end
+            local module = EasyMail.modules.OpenAll
+            local row = {index=8, GetID=function() return 0 end}
+            IsModifiedClick = function() return true end
+            module:HandleInboxRowClick(row)
+            assert(returned == nil)
+            IsModifiedClick = function() return false end
+            module:HandleInboxRowClick(row)
+            assert(returned == 8)
+        ''')
+
+    def test_forever_page_methods_refresh_selection_and_delete_buttons(self):
+        self.load_open_all()
+        self.run_lua('''
+            InboxFrame = {pageNum=1}
+            InboxFrame.NextPageButton = {NextPage=function() InboxFrame.pageNum=2 end}
+            InboxFrame.PrevPageButton = {PrevPage=function() InboxFrame.pageNum=1 end}
+            hooksecurefunc = function(object, key, hook)
+                local original = object[key]
+                object[key] = function(...) original(...) hook(...) end
+            end
+            C_Timer = {After=function(_, callback) callback() end}
+            local module = EasyMail.modules.OpenAll
+            module.UpdateVisibleExpiryIndicators = function() expiryPage=InboxFrame.pageNum end
+            module.UpdateVisibleSelections = function() selectionPage=InboxFrame.pageNum end
+            module:HookPageNavigation()
+            InboxFrame.NextPageButton:NextPage()
+            assert(expiryPage == 2 and selectionPage == 2)
+            InboxFrame.PrevPageButton:PrevPage()
+            assert(expiryPage == 1 and selectionPage == 1)
+        ''')
+
+    def test_inbox_secret_error_ignored_and_public_error_still_stops(self):
+        self.load_open_all()
         self.run_lua('''
             local module = EasyMail.modules.OpenAll
             module.EnsureMenu = function() end
