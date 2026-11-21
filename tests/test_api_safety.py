@@ -205,6 +205,35 @@ class ApiSafetyTests(unittest.TestCase):
             assert(stopped == "bags full")
         ''')
 
+    def test_take_all_only_loots_open_non_cod_non_gm_mail(self):
+        self.load_open_all()
+        self.run_lua('''
+            local module = EasyMail.modules.OpenAll
+            EasyMail.Print = function() end
+            InboxFrame = {openMailID=2}
+            OpenMailFrame = {IsShown=function() return true end}
+            GetInboxNumItems = function() return 3 end
+            cod, gm, pending = 0, false, false
+            GetInboxHeaderInfo = function(index)
+                assert(index == 2)
+                return nil, nil, "Sender", "Subject", 100, cod, 10, 0, nil, nil, nil, nil, gm
+            end
+            C_Mail = {IsCommandPending=function() return pending end}
+            calls = 0
+            AutoLootMailItem = function(index) assert(index == 2) calls=calls+1 end
+            module:TakeAllFromOpenMail()
+            assert(calls == 1)
+            cod = 100
+            module:TakeAllFromOpenMail()
+            cod, gm = 0, true
+            module:TakeAllFromOpenMail()
+            gm, pending = false, true
+            module:TakeAllFromOpenMail()
+            pending, module.isProcessing = false, true
+            module:TakeAllFromOpenMail()
+            assert(calls == 1)
+        ''')
+
 
 if __name__ == '__main__':
     unittest.main()

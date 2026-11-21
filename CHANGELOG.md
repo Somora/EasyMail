@@ -1,6 +1,11 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.18 (21/11/2026)
+- Added Take All for opened mail, leaving COD and GM attachments manual.
+- Match standard mail-button styling when ElvUI's mail skin is active; leave a 3px gap between Take All and Reply.
+- Confirmed this version working in Forever through user testing.
+
 ## Version 1.0.17 (21/11/2026)
 - Include the total attached quantity of the first item in automatic subjects (for example, `Linen Cloth x25`), combining matching stacks.
 - Automatically fill an empty subject with the first attached item's name, updating it when attachments change while preserving custom subjects. Existing automatic gold subjects take priority when enabled.

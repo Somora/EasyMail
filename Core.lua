@@ -3,7 +3,7 @@ EasyMail = EasyMail or {}
 local addon = EasyMail
 
 addon.name = "EasyMail"
-addon.version = "1.0.17"
+addon.version = "1.0.18"
 addon.modules = {}
 addon.defaults = {
     debug = false,
@@ -497,7 +497,23 @@ function addon:GetGuildRecipients()
     return results
 end
 
+function addon:GetElvUISkins()
+    local engine = ElvUI and ElvUI[1]
+    local blizzard = engine and engine.private and engine.private.skins and engine.private.skins.blizzard
+    if not blizzard or blizzard.enable == false or blizzard.mail == false then return nil end
+    return engine.GetModule and engine:GetModule("Skins", true) or nil
+end
+
 function addon:CreateButton(parent, label, width, height, anchorPoint, relativeTo, relativePoint, offsetX, offsetY)
+    local skins = self:GetElvUISkins()
+    if skins and skins.HandleButton then
+        local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+        button:SetSize(width or 96, height or 22)
+        button:SetPoint(anchorPoint, relativeTo, relativePoint, offsetX or 0, offsetY or 0)
+        button:SetText(label or "")
+        skins:HandleButton(button, true)
+        return button
+    end
     local button = CreateFrame("Button", nil, parent, addon.compat.backdropTemplate)
     button:SetSize(width or 96, height or 22)
     button:SetBackdrop({

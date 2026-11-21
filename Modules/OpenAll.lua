@@ -1221,12 +1221,48 @@ function module:ToggleMenu(anchor)
     addon:ToggleContextMenu(self.menuFrame, anchor, self:BuildMenuItems(anchor))
 end
 
+function module:TakeAllFromOpenMail()
+    if self.isProcessing or not OpenMailFrame or not OpenMailFrame:IsShown() then return end
+    local index = InboxFrame and InboxFrame.openMailID
+    if not index or index < 1 or index > getInboxCount() then return end
+    local info = getMailInfo(index)
+    if not info then return end
+    if info.codAmount > 0 then
+        addon:Print("Open COD attachments manually to confirm payment.")
+        return
+    end
+    if info.isGM then
+        addon:Print("Open GM mail attachments manually.")
+        return
+    end
+    if C_Mail and C_Mail.IsCommandPending and C_Mail.IsCommandPending() then return end
+    if info.money > 0 or info.hasItem then AutoLootMailItem(index) end
+end
+
+function module:EnsureOpenMailTools()
+    if self.takeAllButton or not OpenMailFrame then return end
+    local button = addon:CreateButton(OpenMailFrame, "Take All", 78, 22,
+        "BOTTOMLEFT", OpenMailFrame, "BOTTOMLEFT", 8, 4)
+    button:SetScript("OnClick", function() module:TakeAllFromOpenMail() end)
+    local function layout()
+        button:ClearAllPoints()
+        if addon:GetElvUISkins() and OpenMailReplyButton then
+            button:SetPoint("RIGHT", OpenMailReplyButton, "LEFT", -3, 0)
+        else
+            button:SetPoint("BOTTOMLEFT", OpenMailFrame, "BOTTOMLEFT", 8, 4)
+        end
+    end
+    button:HookScript("OnShow", layout)
+    layout()
+    self.takeAllButton = button
+end
+
 function module:LayoutButtons()
     if not self.button then return end
 
     self.button:ClearAllPoints()
     self.menuButton:ClearAllPoints()
-    if isForeverClient() and MailFrame then
+    if (isForeverClient() or addon:GetElvUISkins()) and MailFrame then
         -- Forever's InboxFrame is a content region, not the outer mail window.
         -- Center the complete 312px row in the footer below the inbox content.
         self.button:SetPoint("BOTTOM", MailFrame, "BOTTOM", -119, 16)
@@ -1238,6 +1274,7 @@ function module:LayoutButtons()
 end
 
 function module:EnsureUi()
+    self:EnsureOpenMailTools()
     if self.isUiReady or not InboxFrame then
         return
     end
