@@ -207,10 +207,6 @@ end
 
 function module:UpdateWireSubject()
     local settings = self:GetSettings()
-    if settings.autoWireSubject == false then
-        self.lastAutoSubject = nil
-        return
-    end
 
     local subjectEditBox = getSubjectEditBox()
     if not subjectEditBox then
@@ -219,8 +215,30 @@ function module:UpdateWireSubject()
 
     local amount = getOutgoingMoneyAmount()
     local subject = strtrim(subjectEditBox:GetText() or "")
+    if subject ~= "" and (self.subjectEditedByUser or subject ~= self.lastAutoSubject) then
+        return
+    end
 
-    if amount <= 0 then
+    local autoSubject
+    if amount > 0 and settings.autoWireSubject ~= false then
+        autoSubject = formatWireMoney(amount)
+    elseif GetSendMailItem then
+        local firstName, firstID, quantity
+        for slot = 1, ATTACHMENTS_MAX_SEND or 12 do
+            local name, itemID, _, count = GetSendMailItem(slot)
+            if name and name ~= "" then
+                if not firstName then
+                    firstName, firstID, quantity = name, itemID, 0
+                end
+                if (firstID and itemID == firstID) or (not firstID and name == firstName) then
+                    quantity = quantity + (count or 1)
+                end
+            end
+        end
+        if firstName then autoSubject = firstName .. " x" .. quantity end
+    end
+
+    if not autoSubject then
         if self.lastAutoSubject and subject == self.lastAutoSubject then
             subjectEditBox:SetText("")
         end
@@ -228,7 +246,6 @@ function module:UpdateWireSubject()
         return
     end
 
-    local autoSubject = formatWireMoney(amount)
     if subject == "" or (self.lastAutoSubject and subject == self.lastAutoSubject) then
         subjectEditBox:SetText(autoSubject)
         self.lastAutoSubject = autoSubject
@@ -616,6 +633,16 @@ function module:EnsureUi()
         self.moneyFieldsHooked = true
     end
 
+    if not self.subjectFieldHooked then
+        SendMailSubjectEditBox:HookScript("OnTextChanged", function(editBox, userInput)
+            if userInput then
+                module.subjectEditedByUser = strtrim(editBox:GetText() or "") ~= ""
+                module.lastAutoSubject = nil
+            end
+        end)
+        self.subjectFieldHooked = true
+    end
+
     local quickAttach = getQuickAttachModule()
     if quickAttach then
         quickAttach:EnsureBagHook()
@@ -629,17 +656,25 @@ function module:OnInitialize()
 
     events:RegisterEvent("MAIL_SHOW")
     events:RegisterEvent("MAIL_SEND_SUCCESS")
+    events:RegisterEvent("MAIL_SEND_INFO_UPDATE")
     events:RegisterEvent("MAIL_FAILED")
     events:RegisterEvent("MAIL_CLOSED")
     events:RegisterEvent("FRIENDLIST_UPDATE")
     events:RegisterEvent("GUILD_ROSTER_UPDATE")
     events:SetScript("OnEvent", function(_, event)
         if event == "MAIL_SHOW" then
+            module.subjectEditedByUser = nil
+            module.lastAutoSubject = nil
             addon:RegisterCurrentCharacter()
             module:EnsureUi()
+        elseif event == "MAIL_SEND_INFO_UPDATE" then
+            if SendMailFrame and SendMailFrame:IsShown() then
+                module:UpdateWireSubject()
+            end
         elseif event == "MAIL_SEND_SUCCESS" then
             module:CommitPendingRecipient()
             module.lastAutoSubject = nil
+            module.subjectEditedByUser = nil
             local massSend = getMassSendModule()
             if massSend and massSend:IsActive() then
                 C_Timer.After(0.4, function()

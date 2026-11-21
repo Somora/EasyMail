@@ -49,6 +49,7 @@ EasyMail is a lightweight World of Warcraft mail addon built from scratch. It ta
 
 ### Mail QoL
 - Automatic wire-style subject filling when sending gold and the subject is blank.
+- Automatic subject from the first attached item's name and total attached quantity (for example, `Linen Cloth x25`) when no custom subject is entered; matching stacks are combined and automatic gold subjects take priority when enabled.
 - Recent recipients are remembered after successful sends.
 - Known characters are recorded for alt support.
 - Recipient favorites, default recipient, and notes are saved.
@@ -56,7 +57,7 @@ EasyMail is a lightweight World of Warcraft mail addon built from scratch. It ta
 - Reduced routine chat spam so only important summaries and warnings stay visible during normal use.
 
 ## Version
-- Current release: `1.0.16`
+- Current release: `1.0.17`
 - Game version targets: Retail, Classic client families, and Forever beta (TBC Anniversary tested; other added clients pending in-game validation).
 - Interface versions: `11509`, `20506`, `30405`, `38000`, `40402`, `50504`, `120105`, `16001`.
 

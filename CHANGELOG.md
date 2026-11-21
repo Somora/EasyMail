@@ -1,6 +1,11 @@
 # EasyMail Changelog
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.17 (21/11/2026)
+- Include the total attached quantity of the first item in automatic subjects (for example, `Linen Cloth x25`), combining matching stacks.
+- Automatically fill an empty subject with the first attached item's name, updating it when attachments change while preserving custom subjects. Existing automatic gold subjects take priority when enabled.
+- Confirmed automatic item subjects and quantities in Forever through user testing.
+
 ## Version 1.0.16 (10/11/2026)
 - Fixed inbox row indexes and refreshes after page changes in Forever, including controller navigation.
 - Avoided repeating Forever's built-in modified-click auto-loot and handled numeric inbox attachment counts.

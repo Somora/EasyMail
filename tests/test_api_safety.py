@@ -18,6 +18,59 @@ class ApiSafetyTests(unittest.TestCase):
         for file in [*ROOT.glob('*.lua'), *ROOT.glob('Modules/*.lua')]:
             self.lua.compile(file.read_text(), name=str(file))
 
+    def test_item_subject_updates_and_preserves_custom_subject(self):
+        self.run_lua('''
+            CreateFrame = function() return {} end
+            EasyMail.modules = {}
+            function EasyMail:RegisterModule(name, module) self.modules[name]=module end
+            strtrim = function(text) return text:match("^%s*(.-)%s*$") end
+            subject = ""
+            SendMailSubjectEditBox = {
+                GetText=function() return subject end,
+                SetText=function(_, value) subject=value end,
+            }
+            items = {[2]="Linen Cloth", [3]="Copper Ore"}
+            counts = {}
+            GetSendMailItem = function(slot) return items[slot], nil, nil, counts[slot] end
+        ''')
+        self.lua.execute((ROOT / 'Modules/SendTools.lua').read_text())
+        self.run_lua('''
+            local module = EasyMail.modules.SendTools
+            module.GetSettings = function() return {autoWireSubject=true} end
+            module:UpdateWireSubject()
+            assert(subject == "Linen Cloth x1")
+            counts[2] = 20
+            items[4] = "Linen Cloth"
+            counts[4] = 5
+            module:UpdateWireSubject()
+            assert(subject == "Linen Cloth x25")
+            items[4] = nil
+            items[2] = nil
+            module:UpdateWireSubject()
+            assert(subject == "Copper Ore x1")
+            items = {}
+            module:UpdateWireSubject()
+            assert(subject == "")
+            subject = "A gift for you"
+            items[1] = "Linen Cloth"
+            module:UpdateWireSubject()
+            assert(subject == "A gift for you")
+            subject = "Linen Cloth"
+            module.lastAutoSubject = subject
+            module.subjectEditedByUser = true
+            items[1] = "Copper Ore"
+            module:UpdateWireSubject()
+            assert(subject == "Linen Cloth")
+            module.subjectEditedByUser = nil
+            subject = ""
+            SendMailMoneyGold = {GetText=function() return "10" end}
+            module:UpdateWireSubject()
+            assert(subject == "10g")
+            module.GetSettings = function() return {autoWireSubject=false} end
+            module:UpdateWireSubject()
+            assert(subject == "Copper Ore x1")
+        ''')
+
     def test_target_names_and_classic_without_secret_api(self):
         self.run_lua('''
             UnitExists = function() return true end
